@@ -16,6 +16,7 @@ struct ActiveWorkoutView: View {
     @State private var showingCancelAlert = false
     @State private var showingSummary = false
     @State private var timerPulse = false
+    @State private var completedWorkout: Workout?
 
     var body: some View {
         NavigationStack {
@@ -143,8 +144,9 @@ struct ActiveWorkoutView: View {
                 Text("Your workout progress will be lost.")
             }
             .fullScreenCover(isPresented: $showingSummary) {
-                if let workout = viewModel.currentWorkout {
+                if let workout = completedWorkout {
                     WorkoutSummaryView(workout: workout, viewModel: viewModel) {
+                        completedWorkout = nil
                         dismiss()
                     }
                 }
@@ -206,6 +208,8 @@ struct ActiveWorkoutView: View {
     }
 
     private func finishWorkout() {
+        // Capture the workout reference before it's cleared by finishWorkout()
+        completedWorkout = viewModel.currentWorkout
         viewModel.finishWorkout()
         showingSummary = true
     }
