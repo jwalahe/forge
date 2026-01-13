@@ -52,16 +52,19 @@ struct HistoryListView: View {
     private func workoutList(viewModel: HistoryViewModel) -> some View {
         List {
             ForEach(groupedWorkouts(viewModel.workouts), id: \.key) { date, workouts in
-                Section(date.workoutDateString) {
+                Section {
                     ForEach(workouts) { workout in
                         WorkoutRowView(workout: workout)
                             .contentShape(Rectangle())
                             .onTapGesture {
                                 selectedWorkout = workout
                             }
+                            .listRowInsets(EdgeInsets(top: 8, leading: 16, bottom: 8, trailing: 16))
+                            .listRowSeparator(.hidden)
+                            .listRowBackground(Color.clear)
                             .swipeActions(edge: .trailing, allowsFullSwipe: false) {
                                 Button(role: .destructive) {
-                                    withAnimation {
+                                    withAnimation(.spring(response: 0.3, dampingFraction: 0.7)) {
                                         viewModel.deleteWorkout(workout)
                                     }
                                 } label: {
@@ -69,29 +72,57 @@ struct HistoryListView: View {
                                 }
                             }
                     }
+                } header: {
+                    Text(date.workoutDateString)
+                        .font(.subheadline)
+                        .fontWeight(.semibold)
+                        .foregroundColor(.secondary)
+                        .textCase(nil)
                 }
             }
         }
+        .listStyle(.plain)
         .refreshable {
             viewModel.loadWorkouts()
         }
     }
 
     private var emptyState: some View {
-        VStack(spacing: 16) {
-            Image(systemName: "calendar.badge.clock")
-                .font(.system(size: 60))
-                .foregroundColor(.secondary)
+        VStack(spacing: 24) {
+            ZStack {
+                Circle()
+                    .fill(
+                        LinearGradient(
+                            colors: [Color.forgeAccent.opacity(0.15), Color.forgeAccent.opacity(0.05)],
+                            startPoint: .topLeading,
+                            endPoint: .bottomTrailing
+                        )
+                    )
+                    .frame(width: 120, height: 120)
 
-            Text("No Workouts Yet")
-                .font(.title2)
-                .fontWeight(.semibold)
+                Image(systemName: "calendar.badge.clock")
+                    .font(.system(size: 50))
+                    .foregroundStyle(
+                        LinearGradient(
+                            colors: [Color.forgeAccent, Color.forgeAccent.opacity(0.7)],
+                            startPoint: .topLeading,
+                            endPoint: .bottomTrailing
+                        )
+                    )
+            }
+            .padding(.top, 40)
 
-            Text("Your workout history will appear here after you complete your first session")
-                .font(.subheadline)
-                .foregroundColor(.secondary)
-                .multilineTextAlignment(.center)
-                .padding(.horizontal, 40)
+            VStack(spacing: 12) {
+                Text("No Workouts Yet")
+                    .font(.title)
+                    .fontWeight(.bold)
+
+                Text("Your workout history will appear here after you complete your first session")
+                    .font(.body)
+                    .foregroundColor(.secondary)
+                    .multilineTextAlignment(.center)
+                    .padding(.horizontal, 40)
+            }
         }
         .frame(maxHeight: .infinity)
     }
@@ -120,45 +151,100 @@ struct WorkoutRowView: View {
     let workout: Workout
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 8) {
-            HStack {
-                Text(workout.displayName)
-                    .font(.headline)
+        VStack(alignment: .leading, spacing: 12) {
+            HStack(alignment: .top) {
+                VStack(alignment: .leading, spacing: 6) {
+                    Text(workout.displayName)
+                        .font(.system(size: 17, weight: .semibold))
+                        .foregroundColor(.primary)
+
+                    if let duration = workout.duration {
+                        HStack(spacing: 4) {
+                            Image(systemName: "clock.fill")
+                                .font(.caption2)
+                            Text(duration.shortDuration)
+                                .font(.subheadline)
+                        }
+                        .foregroundStyle(
+                            LinearGradient(
+                                colors: [Color.forgeAccent, Color.forgeAccent.opacity(0.8)],
+                                startPoint: .leading,
+                                endPoint: .trailing
+                            )
+                        )
+                    }
+                }
 
                 Spacer()
 
-                if let duration = workout.duration {
-                    Text(duration.shortDuration)
-                        .font(.subheadline)
-                        .foregroundColor(.secondary)
-                }
+                Image(systemName: "chevron.right")
+                    .font(.caption)
+                    .foregroundColor(.secondary.opacity(0.5))
             }
 
-            HStack(spacing: 16) {
-                Label("\(workout.exercises.count) exercises", systemImage: "list.bullet")
-                    .font(.caption)
-                    .foregroundColor(.secondary)
+            Divider()
 
-                Label("\(workout.totalSets) sets", systemImage: "checkmark.circle")
-                    .font(.caption)
-                    .foregroundColor(.secondary)
+            HStack(spacing: 20) {
+                statBadge(
+                    icon: "figure.strengthtraining.traditional",
+                    value: "\(workout.exercises.count)",
+                    label: "exercises",
+                    color: .blue
+                )
+
+                statBadge(
+                    icon: "checkmark.circle.fill",
+                    value: "\(workout.totalSets)",
+                    label: "sets",
+                    color: .green
+                )
 
                 if workout.totalVolume > 0 {
-                    Label(String(format: "%.0f lbs", workout.totalVolume), systemImage: "scalemass")
-                        .font(.caption)
-                        .foregroundColor(.secondary)
+                    statBadge(
+                        icon: "scalemass.fill",
+                        value: String(format: "%.0fk", workout.totalVolume / 1000),
+                        label: "volume",
+                        color: .orange
+                    )
                 }
             }
 
             // Exercise preview
             if !workout.exercises.isEmpty {
-                Text(exercisePreview)
-                    .font(.caption)
-                    .foregroundColor(.secondary)
-                    .lineLimit(1)
+                HStack(spacing: 6) {
+                    Image(systemName: "list.bullet.circle.fill")
+                        .font(.caption2)
+                        .foregroundColor(.secondary.opacity(0.7))
+
+                    Text(exercisePreview)
+                        .font(.caption)
+                        .foregroundColor(.secondary)
+                        .lineLimit(1)
+                }
             }
         }
-        .padding(.vertical, 4)
+        .padding(16)
+        .background(Color(.systemBackground))
+        .cornerRadius(12)
+        .shadow(color: Color.black.opacity(0.05), radius: 8, x: 0, y: 2)
+    }
+
+    private func statBadge(icon: String, value: String, label: String, color: Color) -> some View {
+        HStack(spacing: 6) {
+            Image(systemName: icon)
+                .font(.caption)
+                .foregroundColor(color)
+
+            VStack(alignment: .leading, spacing: 2) {
+                Text(value)
+                    .font(.system(size: 14, weight: .bold))
+                    .foregroundColor(.primary)
+
+                Text(label)
+                    .font(.caption2)
+                    .foregroundColor(.secondary)
+            }
+        }
     }
 
     private var exercisePreview: String {

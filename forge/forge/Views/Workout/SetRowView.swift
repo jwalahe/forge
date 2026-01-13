@@ -15,6 +15,7 @@ struct SetRowView: View {
 
     @State private var weightText: String
     @State private var repsText: String
+    @State private var isCompleting = false
     @FocusState private var focusedField: Field?
 
     init(set: ExerciseSet, previousSet: ExerciseSet?, viewModel: ActiveWorkoutViewModel) {
@@ -29,60 +30,95 @@ struct SetRowView: View {
 
     var body: some View {
         HStack(spacing: 12) {
-            // Set number badge
+            // Set number badge with animation
             Text("\(set.setNumber)")
                 .font(.system(size: 14, weight: .semibold))
                 .foregroundColor(.white)
-                .frame(width: 28, height: 28)
-                .background(set.isCompleted ? Color.forgeAccent : Color.gray)
+                .frame(width: 32, height: 32)
+                .background(
+                    LinearGradient(
+                        colors: set.isCompleted
+                            ? [Color.forgeAccent, Color.forgeAccent.opacity(0.8)]
+                            : [Color.gray, Color.gray.opacity(0.8)],
+                        startPoint: .topLeading,
+                        endPoint: .bottomTrailing
+                    )
+                )
                 .clipShape(Circle())
+                .scaleEffect(isCompleting ? 1.1 : 1.0)
+                .shadow(
+                    color: set.isCompleted ? Color.forgeAccent.opacity(0.3) : Color.clear,
+                    radius: 6,
+                    x: 0,
+                    y: 2
+                )
+                .animation(.spring(response: 0.3, dampingFraction: 0.6), value: set.isCompleted)
 
-            // Weight field
+            // Weight field with enhanced styling
             TextField("", text: $weightText, prompt: Text(previousSetWeightPlaceholder).foregroundColor(.forgeMuted))
                 .keyboardType(.decimalPad)
                 .textFieldStyle(.plain)
+                .multilineTextAlignment(.center)
+                .font(.system(size: 16, weight: .medium))
                 .padding(.horizontal, 12)
-                .padding(.vertical, 8)
+                .padding(.vertical, 10)
                 .background(Color(.systemGray6))
-                .cornerRadius(8)
-                .frame(width: 80)
+                .cornerRadius(10)
+                .shadow(color: Color.black.opacity(focusedField == .weight ? 0.08 : 0.02), radius: 4, x: 0, y: 2)
+                .frame(width: 85)
                 .focused($focusedField, equals: .weight)
                 .onChange(of: weightText) { oldValue, newValue in
                     updateSetValues()
                 }
+                .animation(.easeInOut(duration: 0.2), value: focusedField == .weight)
 
-            // × separator
+            // × separator with style
             Text("×")
+                .font(.system(size: 18, weight: .medium))
                 .foregroundColor(.secondary)
 
-            // Reps field
+            // Reps field with enhanced styling
             TextField("", text: $repsText, prompt: Text(previousSetRepsPlaceholder).foregroundColor(.forgeMuted))
                 .keyboardType(.numberPad)
                 .textFieldStyle(.plain)
+                .multilineTextAlignment(.center)
+                .font(.system(size: 16, weight: .medium))
                 .padding(.horizontal, 12)
-                .padding(.vertical, 8)
+                .padding(.vertical, 10)
                 .background(Color(.systemGray6))
-                .cornerRadius(8)
-                .frame(width: 60)
+                .cornerRadius(10)
+                .shadow(color: Color.black.opacity(focusedField == .reps ? 0.08 : 0.02), radius: 4, x: 0, y: 2)
+                .frame(width: 65)
                 .focused($focusedField, equals: .reps)
                 .onChange(of: repsText) { oldValue, newValue in
                     updateSetValues()
                 }
+                .animation(.easeInOut(duration: 0.2), value: focusedField == .reps)
 
-            // Progress arrow
+            // Progress arrow with animation
             progressArrow
-                .frame(width: 20)
+                .frame(width: 24)
+                .transition(.scale.combined(with: .opacity))
+                .animation(.spring(response: 0.4, dampingFraction: 0.7), value: viewModel.getProgressIndicator(currentSet: set, previousSet: previousSet))
 
-            // Checkmark button
+            // Checkmark button with enhanced animation
             Button {
                 completeSet()
             } label: {
                 Image(systemName: set.isCompleted ? "checkmark.circle.fill" : "circle")
-                    .font(.system(size: 24))
-                    .foregroundColor(set.isCompleted ? .forgeSuccess : .secondary)
+                    .font(.system(size: 28))
+                    .foregroundColor(set.isCompleted ? .forgeSuccess : .secondary.opacity(0.5))
+                    .scaleEffect(isCompleting ? 1.2 : 1.0)
+                    .shadow(
+                        color: set.isCompleted ? Color.forgeSuccess.opacity(0.3) : Color.clear,
+                        radius: 6,
+                        x: 0,
+                        y: 2
+                    )
             }
+            .frame(width: 44, height: 44)
         }
-        .padding(.vertical, 4)
+        .padding(.vertical, 6)
     }
 
     // MARK: - Computed Properties
@@ -103,13 +139,27 @@ struct SetRowView: View {
         return Group {
             switch indicator {
             case .up:
-                Image(systemName: "arrow.up")
-                    .foregroundColor(.forgeSuccess)
-                    .fontWeight(.bold)
+                Image(systemName: "arrow.up.circle.fill")
+                    .font(.system(size: 20))
+                    .foregroundStyle(
+                        LinearGradient(
+                            colors: [Color.forgeSuccess, Color.forgeSuccess.opacity(0.8)],
+                            startPoint: .topLeading,
+                            endPoint: .bottomTrailing
+                        )
+                    )
+                    .shadow(color: Color.forgeSuccess.opacity(0.3), radius: 4, x: 0, y: 2)
             case .down:
-                Image(systemName: "arrow.down")
-                    .foregroundColor(.forgeWarning)
-                    .fontWeight(.bold)
+                Image(systemName: "arrow.down.circle.fill")
+                    .font(.system(size: 20))
+                    .foregroundStyle(
+                        LinearGradient(
+                            colors: [Color.forgeWarning, Color.forgeWarning.opacity(0.8)],
+                            startPoint: .topLeading,
+                            endPoint: .bottomTrailing
+                        )
+                    )
+                    .shadow(color: Color.forgeWarning.opacity(0.3), radius: 4, x: 0, y: 2)
             case .none:
                 EmptyView()
             }
@@ -128,6 +178,11 @@ struct SetRowView: View {
         // Ensure values are set
         updateSetValues()
 
+        // Animate completion
+        withAnimation(.spring(response: 0.3, dampingFraction: 0.6)) {
+            isCompleting = true
+        }
+
         // Complete the set
         viewModel.completeSet(set)
 
@@ -137,6 +192,13 @@ struct SetRowView: View {
 
         // Dismiss keyboard
         focusedField = nil
+
+        // Reset animation state
+        DispatchQueue.main.asyncAfter(deadline: .now() + 0.3) {
+            withAnimation {
+                isCompleting = false
+            }
+        }
     }
 
     enum Field {

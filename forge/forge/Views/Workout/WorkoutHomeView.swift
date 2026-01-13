@@ -12,49 +12,42 @@ struct WorkoutHomeView: View {
     @Environment(\.modelContext) private var modelContext
     @State private var viewModel: ActiveWorkoutViewModel?
     @State private var showingActiveWorkout = false
+    @State private var pulseAnimation = false
 
     var body: some View {
         NavigationStack {
             ScrollView {
-                VStack(spacing: 24) {
-                    // Header
-                    Text("FORGE")
-                        .font(.largeTitle)
-                        .fontWeight(.bold)
-                        .padding(.top, 40)
+                VStack(spacing: 32) {
+                    // Header with gradient
+                    headerSection
 
                     // Start/Continue Workout Button
                     if let vm = viewModel, vm.currentWorkout != nil {
                         continueWorkoutButton
+                            .transition(.scale.combined(with: .opacity))
                     } else {
                         startWorkoutButton
+                            .transition(.scale.combined(with: .opacity))
                     }
 
-                    // Recent Exercises (placeholder for now)
-                    VStack(alignment: .leading, spacing: 12) {
-                        Text("Quick Start")
-                            .font(.headline)
-                            .padding(.horizontal)
+                    // Quick tips card
+                    quickTipsCard
 
-                        Text("Start a workout to see your recent exercises here")
-                            .font(.subheadline)
-                            .foregroundColor(.secondary)
-                            .padding(.horizontal)
-                    }
-                    .frame(maxWidth: .infinity, alignment: .leading)
-
-                    Spacer()
+                    Spacer(minLength: 40)
                 }
+                .padding(.top, 20)
             }
         }
         .onAppear {
             setupViewModel()
+            withAnimation(.easeInOut(duration: 1.5).repeatForever(autoreverses: true)) {
+                pulseAnimation = true
+            }
         }
         .fullScreenCover(isPresented: $showingActiveWorkout) {
             if let vm = viewModel {
                 ActiveWorkoutView(viewModel: vm)
                     .onDisappear {
-                        // Refresh state when returning
                         setupViewModel()
                     }
             }
@@ -63,47 +56,143 @@ struct WorkoutHomeView: View {
 
     // MARK: - Subviews
 
+    private var headerSection: some View {
+        VStack(spacing: 12) {
+            HStack {
+                Image(systemName: "flame.fill")
+                    .font(.system(size: 32))
+                    .foregroundStyle(
+                        LinearGradient(
+                            colors: [.orange, .red],
+                            startPoint: .topLeading,
+                            endPoint: .bottomTrailing
+                        )
+                    )
+                    .scaleEffect(pulseAnimation ? 1.1 : 1.0)
+
+                Text("FORGE")
+                    .font(.system(size: 42, weight: .black, design: .rounded))
+                    .foregroundStyle(
+                        LinearGradient(
+                            colors: [.primary, .secondary],
+                            startPoint: .leading,
+                            endPoint: .trailing
+                        )
+                    )
+            }
+
+            Text("Build Your Best Self")
+                .font(.subheadline)
+                .foregroundColor(.secondary)
+        }
+        .frame(maxWidth: .infinity)
+    }
+
     private var startWorkoutButton: some View {
         Button {
             startWorkout()
         } label: {
-            HStack {
-                Image(systemName: "play.fill")
+            HStack(spacing: 12) {
+                Image(systemName: "play.circle.fill")
+                    .font(.title2)
+
                 Text("Start Workout")
-                    .fontWeight(.semibold)
+                    .fontWeight(.bold)
+                    .font(.title3)
             }
             .frame(maxWidth: .infinity)
             .frame(height: AppConstants.primaryButtonHeight)
-            .background(Color.forgeAccent)
+            .background(
+                LinearGradient(
+                    colors: [Color.forgeAccent, Color.forgeAccent.opacity(0.8)],
+                    startPoint: .topLeading,
+                    endPoint: .bottomTrailing
+                )
+            )
             .foregroundColor(.white)
-            .cornerRadius(AppConstants.cornerRadius)
+            .cornerRadius(16)
+            .shadow(color: Color.forgeAccent.opacity(0.3), radius: 10, x: 0, y: 5)
         }
-        .padding(.horizontal)
+        .padding(.horizontal, 24)
     }
 
     private var continueWorkoutButton: some View {
         Button {
             continueWorkout()
         } label: {
-            VStack(spacing: 8) {
-                HStack {
-                    Image(systemName: "timer")
+            VStack(spacing: 12) {
+                HStack(spacing: 8) {
+                    Circle()
+                        .fill(Color.white.opacity(0.3))
+                        .frame(width: 8, height: 8)
+                        .scaleEffect(pulseAnimation ? 1.2 : 0.8)
+
                     if let vm = viewModel {
                         Text(vm.elapsedTime.formattedDuration)
-                            .font(.system(.title3, design: .monospaced))
+                            .font(.system(.title2, design: .monospaced))
+                            .fontWeight(.bold)
                     }
+
+                    Image(systemName: "timer")
+                        .font(.title3)
                 }
 
                 Text("Continue Workout")
                     .fontWeight(.semibold)
+                    .font(.headline)
             }
             .frame(maxWidth: .infinity)
             .frame(height: AppConstants.primaryButtonHeight + 20)
-            .background(Color.forgeSuccess)
+            .background(
+                LinearGradient(
+                    colors: [Color.forgeSuccess, Color.forgeSuccess.opacity(0.8)],
+                    startPoint: .topLeading,
+                    endPoint: .bottomTrailing
+                )
+            )
             .foregroundColor(.white)
-            .cornerRadius(AppConstants.cornerRadius)
+            .cornerRadius(16)
+            .shadow(color: Color.forgeSuccess.opacity(0.4), radius: 12, x: 0, y: 6)
         }
-        .padding(.horizontal)
+        .padding(.horizontal, 24)
+    }
+
+    private var quickTipsCard: some View {
+        VStack(alignment: .leading, spacing: 16) {
+            HStack {
+                Image(systemName: "lightbulb.fill")
+                    .foregroundColor(.orange)
+                    .font(.title3)
+
+                Text("Quick Tips")
+                    .font(.headline)
+                    .fontWeight(.bold)
+            }
+
+            VStack(alignment: .leading, spacing: 12) {
+                tipRow(icon: "arrow.up.circle.fill", text: "Green arrows mean you beat last time", color: .green)
+                tipRow(icon: "arrow.down.circle.fill", text: "Red arrows show when you're below", color: .red)
+                tipRow(icon: "checkmark.circle.fill", text: "Tap checkmark to complete a set", color: .blue)
+            }
+        }
+        .padding(20)
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .background(Color(.systemGray6))
+        .cornerRadius(16)
+        .padding(.horizontal, 24)
+    }
+
+    private func tipRow(icon: String, text: String, color: Color) -> some View {
+        HStack(spacing: 12) {
+            Image(systemName: icon)
+                .foregroundColor(color)
+                .font(.body)
+                .frame(width: 24)
+
+            Text(text)
+                .font(.subheadline)
+                .foregroundColor(.secondary)
+        }
     }
 
     // MARK: - Actions
@@ -112,8 +201,6 @@ struct WorkoutHomeView: View {
         if viewModel == nil {
             viewModel = ActiveWorkoutViewModel(modelContext: modelContext)
         }
-
-        // Check for in-progress workout
         viewModel?.loadInProgressWorkout()
     }
 
@@ -122,17 +209,19 @@ struct WorkoutHomeView: View {
             viewModel = ActiveWorkoutViewModel(modelContext: modelContext)
         }
 
-        viewModel?.startNewWorkout()
-        showingActiveWorkout = true
+        withAnimation(.spring(response: 0.3, dampingFraction: 0.7)) {
+            viewModel?.startNewWorkout()
+            showingActiveWorkout = true
+        }
 
-        // Haptic feedback
         UIImpactFeedbackGenerator(style: .medium).impactOccurred()
     }
 
     private func continueWorkout() {
-        showingActiveWorkout = true
+        withAnimation(.spring(response: 0.3, dampingFraction: 0.7)) {
+            showingActiveWorkout = true
+        }
 
-        // Haptic feedback
         UIImpactFeedbackGenerator(style: .light).impactOccurred()
     }
 }

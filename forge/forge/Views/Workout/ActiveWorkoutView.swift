@@ -15,47 +15,74 @@ struct ActiveWorkoutView: View {
     @State private var showingAddExercise = false
     @State private var showingCancelAlert = false
     @State private var showingSummary = false
+    @State private var timerPulse = false
 
     var body: some View {
         NavigationStack {
             ZStack(alignment: .bottom) {
+                // Background gradient
+                LinearGradient(
+                    colors: [Color(.systemBackground), Color(.systemGray6).opacity(0.3)],
+                    startPoint: .top,
+                    endPoint: .bottom
+                )
+                .ignoresSafeArea()
+
                 // Exercise list
                 ScrollView {
-                    VStack(spacing: 16) {
+                    VStack(spacing: 20) {
                         if let workout = viewModel.currentWorkout {
-                            ForEach(sortedExercises(workout)) { workoutExercise in
-                                ExerciseCardView(
-                                    workoutExercise: workoutExercise,
-                                    viewModel: viewModel
-                                )
+                            if sortedExercises(workout).isEmpty {
+                                emptyStateView
+                                    .transition(.scale.combined(with: .opacity))
+                            } else {
+                                ForEach(sortedExercises(workout)) { workoutExercise in
+                                    ExerciseCardView(
+                                        workoutExercise: workoutExercise,
+                                        viewModel: viewModel
+                                    )
+                                    .transition(.asymmetric(
+                                        insertion: .move(edge: .bottom).combined(with: .opacity),
+                                        removal: .move(edge: .trailing).combined(with: .opacity)
+                                    ))
+                                }
                             }
                         }
 
                         // Spacing for the bottom button
-                        Color.clear.frame(height: 80)
+                        Color.clear.frame(height: 90)
                     }
-                    .padding()
+                    .padding(.horizontal)
+                    .padding(.top, 16)
                 }
 
-                // Add Exercise button (sticky bottom)
+                // Add Exercise button (sticky bottom) with gradient
                 VStack {
                     Spacer()
                     Button {
                         showingAddExercise = true
                     } label: {
-                        HStack {
-                            Image(systemName: "plus")
+                        HStack(spacing: 10) {
+                            Image(systemName: "plus.circle.fill")
+                                .font(.title3)
                             Text("Add Exercise")
-                                .fontWeight(.semibold)
+                                .fontWeight(.bold)
                         }
                         .frame(maxWidth: .infinity)
                         .frame(height: AppConstants.primaryButtonHeight)
-                        .background(Color.forgeAccent)
+                        .background(
+                            LinearGradient(
+                                colors: [Color.forgeAccent, Color.forgeAccent.opacity(0.85)],
+                                startPoint: .topLeading,
+                                endPoint: .bottomTrailing
+                            )
+                        )
                         .foregroundColor(.white)
-                        .cornerRadius(AppConstants.cornerRadius)
-                        .shadow(color: Color.black.opacity(0.1), radius: 5, x: 0, y: -2)
+                        .cornerRadius(16)
+                        .shadow(color: Color.forgeAccent.opacity(0.3), radius: 12, x: 0, y: 6)
                     }
-                    .padding()
+                    .padding(.horizontal)
+                    .padding(.bottom, 8)
                 }
             }
             .navigationTitle("Workout")
@@ -65,21 +92,41 @@ struct ActiveWorkoutView: View {
                     Button("Cancel") {
                         showingCancelAlert = true
                     }
+                    .foregroundColor(.red)
                 }
 
                 ToolbarItem(placement: .principal) {
-                    Text(viewModel.elapsedTime.formattedDuration)
-                        .font(.system(.body, design: .monospaced))
-                        .foregroundColor(.forgeAccent)
+                    HStack(spacing: 6) {
+                        Circle()
+                            .fill(Color.red)
+                            .frame(width: 8, height: 8)
+                            .opacity(timerPulse ? 1.0 : 0.3)
+                            .animation(.easeInOut(duration: 1.0).repeatForever(autoreverses: true), value: timerPulse)
+
+                        Text(viewModel.elapsedTime.formattedDuration)
+                            .font(.system(.body, design: .monospaced))
+                            .fontWeight(.semibold)
+                            .foregroundStyle(
+                                LinearGradient(
+                                    colors: [Color.forgeAccent, Color.forgeAccent.opacity(0.8)],
+                                    startPoint: .leading,
+                                    endPoint: .trailing
+                                )
+                            )
+                    }
                 }
 
                 ToolbarItem(placement: .confirmationAction) {
                     Button("Finish") {
                         finishWorkout()
                     }
-                    .fontWeight(.semibold)
+                    .fontWeight(.bold)
+                    .foregroundColor(canFinishWorkout ? .forgeSuccess : .secondary)
                     .disabled(!canFinishWorkout)
                 }
+            }
+            .onAppear {
+                timerPulse = true
             }
             .sheet(isPresented: $showingAddExercise) {
                 AddExerciseSheet(viewModel: viewModel) { exercise in
@@ -105,6 +152,36 @@ struct ActiveWorkoutView: View {
         }
     }
 
+    // MARK: - Subviews
+
+    private var emptyStateView: some View {
+        VStack(spacing: 20) {
+            Image(systemName: "dumbbell.fill")
+                .font(.system(size: 60))
+                .foregroundStyle(
+                    LinearGradient(
+                        colors: [Color.forgeAccent, Color.forgeAccent.opacity(0.6)],
+                        startPoint: .topLeading,
+                        endPoint: .bottomTrailing
+                    )
+                )
+                .padding(.top, 60)
+
+            VStack(spacing: 8) {
+                Text("Ready to Start")
+                    .font(.title2)
+                    .fontWeight(.bold)
+
+                Text("Add your first exercise to begin tracking")
+                    .font(.subheadline)
+                    .foregroundColor(.secondary)
+                    .multilineTextAlignment(.center)
+            }
+        }
+        .frame(maxWidth: .infinity)
+        .padding()
+    }
+
     // MARK: - Computed Properties
 
     private var canFinishWorkout: Bool {
@@ -120,7 +197,7 @@ struct ActiveWorkoutView: View {
     // MARK: - Actions
 
     private func addExercise(_ exercise: Exercise) {
-        withAnimation {
+        withAnimation(.spring(response: 0.4, dampingFraction: 0.7)) {
             viewModel.addExercise(exercise)
         }
 
