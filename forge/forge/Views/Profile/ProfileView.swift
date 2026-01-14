@@ -21,6 +21,19 @@ struct ProfileView: View {
                 Section {
                     if let viewModel = historyViewModel {
                         statsGrid(viewModel: viewModel)
+
+                        // View Trends button
+                        NavigationLink(destination: TrendsView(viewModel: viewModel)) {
+                            HStack {
+                                Image(systemName: "chart.xyaxis.line")
+                                    .foregroundColor(.forgeAccent)
+                                Text("View Detailed Analytics")
+                                    .fontWeight(.semibold)
+                                Spacer()
+                            }
+                            .padding(.vertical, 8)
+                        }
+                        .listRowInsets(EdgeInsets(top: 8, leading: 16, bottom: 8, trailing: 16))
                     }
                 } header: {
                     Text("Your Stats")
