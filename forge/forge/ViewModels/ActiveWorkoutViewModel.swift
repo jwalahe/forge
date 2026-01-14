@@ -22,6 +22,11 @@ class ActiveWorkoutViewModel {
     var isTimerRunning = false
     nonisolated(unsafe) private var timer: Timer?
 
+    // Rest timer
+    var restTimeRemaining: Int = 0
+    var isRestTimerActive = false
+    nonisolated(unsafe) private var restTimer: Timer?
+
     init(modelContext: ModelContext) {
         self.modelContext = modelContext
         self.workoutRepository = WorkoutRepository(modelContext: modelContext)
@@ -112,9 +117,17 @@ class ActiveWorkoutViewModel {
         workoutRepository.save()
     }
 
+    func updateSetType(_ set: ExerciseSet, type: ExerciseSet.SetType) {
+        set.setType = type
+        workoutRepository.save()
+    }
+
     func completeSet(_ set: ExerciseSet) {
         set.completedAt = Date()
         workoutRepository.save()
+
+        // Start rest timer (90 seconds default)
+        startRestTimer(duration: 90)
     }
 
     func deleteSet(_ set: ExerciseSet) {
@@ -126,6 +139,11 @@ class ActiveWorkoutViewModel {
         for (index, remainingSet) in remainingSets.enumerated() {
             remainingSet.setNumber = index + 1
         }
+        workoutRepository.save()
+    }
+
+    func updateExerciseNotes(_ workoutExercise: WorkoutExercise, notes: String) {
+        workoutExercise.notes = notes.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty ? nil : notes
         workoutRepository.save()
     }
 
@@ -177,10 +195,41 @@ class ActiveWorkoutViewModel {
         timer = nil
     }
 
+    // MARK: - Rest Timer
+
+    func startRestTimer(duration: Int) {
+        stopRestTimer()
+        restTimeRemaining = duration
+        isRestTimerActive = true
+
+        restTimer = Timer.scheduledTimer(withTimeInterval: 1.0, repeats: true) { [weak self] _ in
+            Task { @MainActor in
+                guard let self = self else { return }
+                if self.restTimeRemaining > 0 {
+                    self.restTimeRemaining -= 1
+                } else {
+                    self.stopRestTimer()
+                }
+            }
+        }
+    }
+
+    func stopRestTimer() {
+        isRestTimerActive = false
+        restTimer?.invalidate()
+        restTimer = nil
+        restTimeRemaining = 0
+    }
+
+    func skipRestTimer() {
+        stopRestTimer()
+    }
+
     // MARK: - Cleanup
 
     deinit {
         timer?.invalidate()
+        restTimer?.invalidate()
     }
 }
 

@@ -16,6 +16,7 @@ struct SetRowView: View {
     @State private var weightText: String
     @State private var repsText: String
     @State private var isCompleting = false
+    @State private var showingSetTypeMenu = false
     @FocusState private var focusedField: Field?
 
     init(set: ExerciseSet, previousSet: ExerciseSet?, viewModel: ActiveWorkoutViewModel) {
@@ -30,29 +31,45 @@ struct SetRowView: View {
 
     var body: some View {
         HStack(spacing: 12) {
-            // Set number badge with animation
-            Text("\(set.setNumber)")
-                .font(.system(size: 14, weight: .semibold))
-                .foregroundColor(.white)
-                .frame(width: 32, height: 32)
-                .background(
-                    LinearGradient(
-                        colors: set.isCompleted
-                            ? [Color.forgeAccent, Color.forgeAccent.opacity(0.8)]
-                            : [Color.gray, Color.gray.opacity(0.8)],
-                        startPoint: .topLeading,
-                        endPoint: .bottomTrailing
+            // Set number badge with set type indicator
+            VStack(spacing: 2) {
+                Text("\(set.setNumber)")
+                    .font(.system(size: 14, weight: .semibold))
+                    .foregroundColor(.white)
+                    .frame(width: 32, height: 32)
+                    .background(
+                        LinearGradient(
+                            colors: set.isCompleted
+                                ? [Color.forgeAccent, Color.forgeAccent.opacity(0.8)]
+                                : [Color.gray, Color.gray.opacity(0.8)],
+                            startPoint: .topLeading,
+                            endPoint: .bottomTrailing
+                        )
                     )
-                )
-                .clipShape(Circle())
-                .scaleEffect(isCompleting ? 1.1 : 1.0)
-                .shadow(
-                    color: set.isCompleted ? Color.forgeAccent.opacity(0.3) : Color.clear,
-                    radius: 6,
-                    x: 0,
-                    y: 2
-                )
-                .animation(.spring(response: 0.3, dampingFraction: 0.6), value: set.isCompleted)
+                    .clipShape(Circle())
+                    .scaleEffect(isCompleting ? 1.1 : 1.0)
+                    .shadow(
+                        color: set.isCompleted ? Color.forgeAccent.opacity(0.3) : Color.clear,
+                        radius: 6,
+                        x: 0,
+                        y: 2
+                    )
+                    .animation(.spring(response: 0.3, dampingFraction: 0.6), value: set.isCompleted)
+
+                // Set type badge
+                if set.setType != .working {
+                    Text(setTypeAbbreviation)
+                        .font(.system(size: 8, weight: .bold))
+                        .foregroundColor(setTypeColor)
+                        .padding(.horizontal, 4)
+                        .padding(.vertical, 2)
+                        .background(setTypeColor.opacity(0.15))
+                        .cornerRadius(4)
+                }
+            }
+            .onTapGesture {
+                showingSetTypeMenu = true
+            }
 
             // Weight field with enhanced styling
             TextField("", text: $weightText, prompt: Text(previousSetWeightPlaceholder).foregroundColor(.forgeMuted))
@@ -135,6 +152,14 @@ struct SetRowView: View {
             .frame(width: 44, height: 44)
         }
         .padding(.vertical, 6)
+        .confirmationDialog("Set Type", isPresented: $showingSetTypeMenu) {
+            ForEach(ExerciseSet.SetType.allCases, id: \.self) { type in
+                Button(type.displayName) {
+                    updateSetType(type)
+                }
+            }
+            Button("Cancel", role: .cancel) {}
+        }
     }
 
     // MARK: - Computed Properties
@@ -147,6 +172,24 @@ struct SetRowView: View {
     private var previousSetRepsPlaceholder: String {
         guard let reps = previousSet?.reps else { return "0" }
         return String(reps)
+    }
+
+    private var setTypeAbbreviation: String {
+        switch set.setType {
+        case .warmup: return "W"
+        case .working: return "W"
+        case .dropSet: return "D"
+        case .toFailure: return "F"
+        }
+    }
+
+    private var setTypeColor: Color {
+        switch set.setType {
+        case .warmup: return .blue
+        case .working: return .forgeAccent
+        case .dropSet: return .purple
+        case .toFailure: return .red
+        }
     }
 
     private var progressArrow: some View {
@@ -215,6 +258,15 @@ struct SetRowView: View {
                 isCompleting = false
             }
         }
+    }
+
+    private func updateSetType(_ type: ExerciseSet.SetType) {
+        withAnimation(.spring(response: 0.3, dampingFraction: 0.7)) {
+            viewModel.updateSetType(set, type: type)
+        }
+
+        // Haptic feedback
+        UIImpactFeedbackGenerator(style: .light).impactOccurred()
     }
 
     enum Field {

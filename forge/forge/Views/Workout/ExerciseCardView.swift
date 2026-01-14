@@ -13,6 +13,8 @@ struct ExerciseCardView: View {
     let viewModel: ActiveWorkoutViewModel
 
     @State private var showingOptions = false
+    @State private var showingNotes = false
+    @State private var notesText = ""
 
     var body: some View {
         VStack(alignment: .leading, spacing: 16) {
@@ -70,6 +72,46 @@ struct ExerciseCardView: View {
                     }
             }
 
+            // Notes display if they exist
+            if let notes = workoutExercise.notes, !notes.isEmpty {
+                HStack(alignment: .top, spacing: 8) {
+                    Image(systemName: "note.text")
+                        .font(.caption)
+                        .foregroundColor(.orange)
+                        .padding(.top, 2)
+
+                    Text(notes)
+                        .font(.subheadline)
+                        .foregroundColor(.secondary)
+                        .lineLimit(3)
+
+                    Spacer()
+
+                    Button {
+                        notesText = notes
+                        showingNotes = true
+                    } label: {
+                        Image(systemName: "pencil.circle.fill")
+                            .font(.title3)
+                            .foregroundColor(.orange.opacity(0.7))
+                    }
+                }
+                .padding(12)
+                .background(
+                    LinearGradient(
+                        colors: [Color.orange.opacity(0.08), Color.orange.opacity(0.04)],
+                        startPoint: .topLeading,
+                        endPoint: .bottomTrailing
+                    )
+                )
+                .cornerRadius(10)
+                .overlay(
+                    RoundedRectangle(cornerRadius: 10)
+                        .stroke(Color.orange.opacity(0.2), lineWidth: 1)
+                )
+                .transition(.move(edge: .top).combined(with: .opacity))
+            }
+
             // Add Set button with enhanced styling
             Button {
                 addNewSet()
@@ -92,8 +134,9 @@ struct ExerciseCardView: View {
         .cornerRadius(16)
         .shadow(color: Color.black.opacity(0.08), radius: 10, x: 0, y: 4)
         .confirmationDialog("Exercise Options", isPresented: $showingOptions) {
-            Button("Add Note") {
-                // TODO: Implement notes
+            Button(workoutExercise.notes == nil ? "Add Note" : "Edit Note") {
+                notesText = workoutExercise.notes ?? ""
+                showingNotes = true
             }
             Button("Remove Exercise", role: .destructive) {
                 withAnimation(.spring(response: 0.3, dampingFraction: 0.7)) {
@@ -101,6 +144,9 @@ struct ExerciseCardView: View {
                 }
             }
             Button("Cancel", role: .cancel) {}
+        }
+        .sheet(isPresented: $showingNotes) {
+            notesSheet
         }
     }
 
@@ -174,6 +220,44 @@ struct ExerciseCardView: View {
         .background(Color(.systemBackground))
         .cornerRadius(8)
         .shadow(color: Color.black.opacity(0.05), radius: 3, x: 0, y: 1)
+    }
+
+    private var notesSheet: some View {
+        NavigationStack {
+            VStack(alignment: .leading, spacing: 16) {
+                Text("Add notes about your performance, form, or how you felt during this exercise.")
+                    .font(.subheadline)
+                    .foregroundColor(.secondary)
+                    .padding(.horizontal)
+
+                TextEditor(text: $notesText)
+                    .font(.body)
+                    .padding(8)
+                    .background(Color(.systemGray6))
+                    .cornerRadius(12)
+                    .frame(minHeight: 150)
+                    .padding(.horizontal)
+
+                Spacer()
+            }
+            .padding(.top)
+            .navigationTitle("Exercise Notes")
+            .navigationBarTitleDisplayMode(.inline)
+            .toolbar {
+                ToolbarItem(placement: .cancellationAction) {
+                    Button("Cancel") {
+                        showingNotes = false
+                    }
+                }
+                ToolbarItem(placement: .confirmationAction) {
+                    Button("Save") {
+                        viewModel.updateExerciseNotes(workoutExercise, notes: notesText)
+                        showingNotes = false
+                    }
+                    .fontWeight(.semibold)
+                }
+            }
+        }
     }
 
     // MARK: - Computed Properties

@@ -57,6 +57,17 @@ struct ActiveWorkoutView: View {
                     .padding(.top, 16)
                 }
 
+                // Rest timer banner (if active)
+                if viewModel.isRestTimerActive {
+                    VStack {
+                        Spacer()
+                        restTimerBanner
+                            .padding(.horizontal)
+                            .padding(.bottom, 84)
+                            .transition(.move(edge: .bottom).combined(with: .opacity))
+                    }
+                }
+
                 // Add Exercise button (sticky bottom) with gradient
                 VStack {
                     Spacer()
@@ -184,12 +195,60 @@ struct ActiveWorkoutView: View {
         .padding()
     }
 
+    private var restTimerBanner: some View {
+        HStack {
+            VStack(alignment: .leading, spacing: 4) {
+                Text("Rest Timer")
+                    .font(.caption)
+                    .fontWeight(.semibold)
+                    .foregroundColor(.secondary)
+
+                Text(formattedRestTime)
+                    .font(.system(size: 24, weight: .bold, design: .monospaced))
+                    .foregroundColor(.primary)
+            }
+
+            Spacer()
+
+            Button {
+                withAnimation(.spring(response: 0.3, dampingFraction: 0.7)) {
+                    viewModel.skipRestTimer()
+                }
+            } label: {
+                Text("Skip")
+                    .font(.subheadline)
+                    .fontWeight(.semibold)
+                    .foregroundColor(.forgeAccent)
+                    .padding(.horizontal, 16)
+                    .padding(.vertical, 8)
+                    .background(Color.forgeAccent.opacity(0.15))
+                    .cornerRadius(8)
+            }
+        }
+        .padding(16)
+        .background(
+            LinearGradient(
+                colors: [Color(.systemBackground), Color(.systemGray6)],
+                startPoint: .top,
+                endPoint: .bottom
+            )
+        )
+        .cornerRadius(12)
+        .shadow(color: Color.black.opacity(0.15), radius: 10, x: 0, y: -2)
+    }
+
     // MARK: - Computed Properties
 
     private var canFinishWorkout: Bool {
         guard let workout = viewModel.currentWorkout else { return false }
         // Must have at least one completed set
         return workout.exercises.contains { !$0.completedSets.isEmpty }
+    }
+
+    private var formattedRestTime: String {
+        let minutes = viewModel.restTimeRemaining / 60
+        let seconds = viewModel.restTimeRemaining % 60
+        return String(format: "%d:%02d", minutes, seconds)
     }
 
     private func sortedExercises(_ workout: Workout) -> [WorkoutExercise] {
