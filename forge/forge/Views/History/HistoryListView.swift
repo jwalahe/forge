@@ -199,11 +199,11 @@ struct WorkoutRowView: View {
                     color: .green
                 )
 
-                if workout.totalVolume > 0 {
+                if let duration = workout.duration {
                     statBadge(
-                        icon: "scalemass.fill",
-                        value: String(format: "%.0fk", workout.totalVolume / 1000),
-                        label: "volume",
+                        icon: "clock.fill",
+                        value: duration.shortDuration,
+                        label: "duration",
                         color: .orange
                     )
                 }

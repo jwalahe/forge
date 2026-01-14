@@ -15,30 +15,70 @@ struct WorkoutSummaryView: View {
 
     @State private var workoutName = ""
     @State private var notes = ""
+    @State private var celebrationScale = 0.5
 
     var body: some View {
         NavigationStack {
             ScrollView {
                 VStack(spacing: 24) {
-                    // Checkmark animation
-                    Image(systemName: "checkmark.circle.fill")
-                        .font(.system(size: 60))
-                        .foregroundColor(.forgeSuccess)
+                    // Checkmark animation with gradient
+                    ZStack {
+                        Circle()
+                            .fill(
+                                LinearGradient(
+                                    colors: [Color.forgeSuccess.opacity(0.2), Color.forgeSuccess.opacity(0.05)],
+                                    startPoint: .topLeading,
+                                    endPoint: .bottomTrailing
+                                )
+                            )
+                            .frame(width: 120, height: 120)
+                            .scaleEffect(celebrationScale)
 
-                    Text("Workout Complete")
-                        .font(.title2)
-                        .fontWeight(.bold)
+                        Image(systemName: "checkmark.circle.fill")
+                            .font(.system(size: 60))
+                            .foregroundStyle(
+                                LinearGradient(
+                                    colors: [Color.forgeSuccess, Color.green],
+                                    startPoint: .topLeading,
+                                    endPoint: .bottomTrailing
+                                )
+                            )
+                            .scaleEffect(celebrationScale)
+                    }
+                    .onAppear {
+                        withAnimation(.spring(response: 0.6, dampingFraction: 0.6)) {
+                            celebrationScale = 1.0
+                        }
+                    }
+
+                    VStack(spacing: 8) {
+                        Text("Workout Complete!")
+                            .font(.title)
+                            .fontWeight(.bold)
+
+                        if workout.personalRecordsCount > 0 {
+                            HStack(spacing: 6) {
+                                Image(systemName: "trophy.fill")
+                                    .foregroundStyle(
+                                        LinearGradient(
+                                            colors: [Color.orange, Color.yellow],
+                                            startPoint: .leading,
+                                            endPoint: .trailing
+                                        )
+                                    )
+                                Text("\(workout.personalRecordsCount) Personal Record\(workout.personalRecordsCount == 1 ? "" : "s")!")
+                                    .fontWeight(.semibold)
+                            }
+                            .foregroundColor(.orange)
+                            .font(.subheadline)
+                        }
+                    }
 
                     // Stats grid
                     LazyVGrid(columns: [GridItem(.flexible()), GridItem(.flexible())], spacing: 16) {
                         StatCard(
                             title: "Duration",
                             value: workout.duration?.shortDuration ?? "0 min"
-                        )
-
-                        StatCard(
-                            title: "Volume",
-                            value: String(format: "%.0f lbs", workout.totalVolume)
                         )
 
                         StatCard(
@@ -50,6 +90,11 @@ struct WorkoutSummaryView: View {
                             title: "Exercises",
                             value: "\(workout.exercises.count)"
                         )
+
+                        StatCard(
+                            title: "PRs",
+                            value: "\(workout.personalRecordsCount)"
+                        )
                     }
 
                     // Exercise summary
@@ -58,17 +103,42 @@ struct WorkoutSummaryView: View {
                             .font(.headline)
 
                         ForEach(sortedExercises) { workoutExercise in
-                            HStack {
-                                Text(workoutExercise.exercise?.name ?? "Unknown")
+                            let prCount = workoutExercise.sets.filter { $0.isPersonalRecord }.count
+                            HStack(alignment: .center, spacing: 8) {
+                                VStack(alignment: .leading, spacing: 4) {
+                                    Text(workoutExercise.exercise?.name ?? "Unknown")
+                                        .fontWeight(prCount > 0 ? .semibold : .regular)
+
+                                    if prCount > 0 {
+                                        HStack(spacing: 4) {
+                                            Image(systemName: "trophy.fill")
+                                                .font(.caption2)
+                                            Text("\(prCount) PR\(prCount == 1 ? "" : "s")")
+                                                .font(.caption)
+                                                .fontWeight(.medium)
+                                        }
+                                        .foregroundStyle(
+                                            LinearGradient(
+                                                colors: [Color.orange, Color.yellow],
+                                                startPoint: .leading,
+                                                endPoint: .trailing
+                                            )
+                                        )
+                                    }
+                                }
+
                                 Spacer()
-                                Text("\(workoutExercise.completedSets.count) sets")
+
+                                Text("\(workoutExercise.completedSets.count) set\(workoutExercise.completedSets.count == 1 ? "" : "s")")
                                     .foregroundColor(.secondary)
+                                    .font(.subheadline)
                             }
+                            .padding(.vertical, 4)
                         }
                     }
                     .padding()
                     .background(Color(.systemGray6))
-                    .cornerRadius(AppConstants.cornerRadius)
+                    .cornerRadius(12)
 
                     // Optional name
                     VStack(alignment: .leading, spacing: 8) {

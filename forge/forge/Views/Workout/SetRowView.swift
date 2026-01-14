@@ -101,6 +101,22 @@ struct SetRowView: View {
                 .transition(.scale.combined(with: .opacity))
                 .animation(.spring(response: 0.4, dampingFraction: 0.7), value: viewModel.getProgressIndicator(currentSet: set, previousSet: previousSet))
 
+            // PR trophy indicator
+            if set.isPersonalRecord {
+                Image(systemName: "trophy.fill")
+                    .font(.system(size: 18))
+                    .foregroundStyle(
+                        LinearGradient(
+                            colors: [Color.orange, Color.yellow],
+                            startPoint: .topLeading,
+                            endPoint: .bottomTrailing
+                        )
+                    )
+                    .shadow(color: Color.orange.opacity(0.4), radius: 4, x: 0, y: 2)
+                    .transition(.scale.combined(with: .opacity))
+                    .frame(width: 24)
+            }
+
             // Checkmark button with enhanced animation
             Button {
                 completeSet()

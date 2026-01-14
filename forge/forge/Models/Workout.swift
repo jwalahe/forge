@@ -55,6 +55,12 @@ class Workout {
         exercises.reduce(0) { $0 + $1.completedSets.count }
     }
 
+    var personalRecordsCount: Int {
+        exercises.reduce(0) { total, workoutExercise in
+            total + workoutExercise.sets.filter { $0.isPersonalRecord }.count
+        }
+    }
+
     var displayName: String {
         if let name = name, !name.isEmpty {
             return name

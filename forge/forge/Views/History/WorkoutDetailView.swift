@@ -86,11 +86,6 @@ struct WorkoutDetailView: View {
             )
 
             StatCard(
-                title: "Volume",
-                value: String(format: "%.0f lbs", workout.totalVolume)
-            )
-
-            StatCard(
                 title: "Sets",
                 value: "\(workout.totalSets)"
             )
@@ -98,6 +93,11 @@ struct WorkoutDetailView: View {
             StatCard(
                 title: "Exercises",
                 value: "\(workout.exercises.count)"
+            )
+
+            StatCard(
+                title: "PRs",
+                value: "\(workout.personalRecordsCount)"
             )
         }
         .padding(.horizontal)
@@ -124,7 +124,14 @@ struct WorkoutDetailView: View {
 
                     if set.isPersonalRecord {
                         Image(systemName: "trophy.fill")
-                            .foregroundColor(.orange)
+                            .foregroundStyle(
+                                LinearGradient(
+                                    colors: [Color.orange, Color.yellow],
+                                    startPoint: .topLeading,
+                                    endPoint: .bottomTrailing
+                                )
+                            )
+                            .shadow(color: Color.orange.opacity(0.3), radius: 3, x: 0, y: 1)
                     }
                 }
                 .font(.subheadline)

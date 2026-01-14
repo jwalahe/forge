@@ -83,9 +83,9 @@ struct ProfileView: View {
             )
 
             StatCardCompact(
-                icon: "scalemass",
-                title: "Total Volume",
-                value: String(format: "%.0fk", viewModel.totalVolume() / 1000),
+                icon: "trophy.fill",
+                title: "Total PRs",
+                value: "\(viewModel.totalPersonalRecords())",
                 color: .orange
             )
 

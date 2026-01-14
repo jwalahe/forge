@@ -106,6 +106,10 @@ class HistoryViewModel {
         workouts.reduce(0) { $0 + $1.totalVolume }
     }
 
+    func totalPersonalRecords() -> Int {
+        workouts.reduce(0) { $0 + $1.personalRecordsCount }
+    }
+
     func currentStreak() -> Int {
         guard !workouts.isEmpty else { return 0 }
 
