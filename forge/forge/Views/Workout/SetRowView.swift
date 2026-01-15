@@ -188,7 +188,7 @@ struct SetRowView: View {
 
     private var setTypeAbbreviation: String {
         switch set.setType {
-        case .warmup: return "W"
+        case .warmup: return "WU"
         case .working: return "W"
         case .dropSet: return "D"
         case .toFailure: return "F"

@@ -15,6 +15,8 @@ struct ExerciseCardView: View {
     @State private var showingOptions = false
     @State private var showingNotes = false
     @State private var showingHistory = false
+    @State private var showingRemoveConfirmation = false
+    @State private var setToDelete: ExerciseSet?
     @State private var notesText = ""
 
     var body: some View {
@@ -22,13 +24,24 @@ struct ExerciseCardView: View {
             // Header with enhanced styling
             HStack {
                 VStack(alignment: .leading, spacing: 4) {
-                    Text(workoutExercise.exercise?.name ?? "Unknown Exercise")
-                        .font(.system(size: 18, weight: .bold))
-                        .foregroundColor(.primary)
-                        .onLongPressGesture(minimumDuration: 0.5) {
+                    HStack(spacing: 6) {
+                        Text(workoutExercise.exercise?.name ?? "Unknown Exercise")
+                            .font(.system(size: 18, weight: .bold))
+                            .foregroundColor(.primary)
+                            .onLongPressGesture(minimumDuration: 0.5) {
+                                showingHistory = true
+                                UIImpactFeedbackGenerator(style: .medium).impactOccurred()
+                            }
+
+                        Button {
                             showingHistory = true
-                            UIImpactFeedbackGenerator(style: .medium).impactOccurred()
+                            UIImpactFeedbackGenerator(style: .light).impactOccurred()
+                        } label: {
+                            Image(systemName: "clock.arrow.circlepath")
+                                .font(.caption)
+                                .foregroundColor(.secondary.opacity(0.6))
                         }
+                    }
 
                     if let muscleGroup = workoutExercise.exercise?.muscleGroup {
                         Text(muscleGroup.displayName)
@@ -66,11 +79,9 @@ struct ExerciseCardView: View {
                         insertion: .move(edge: .leading).combined(with: .opacity),
                         removal: .move(edge: .trailing).combined(with: .opacity)
                     ))
-                    .swipeActions(edge: .trailing, allowsFullSwipe: true) {
+                    .swipeActions(edge: .trailing, allowsFullSwipe: false) {
                         Button(role: .destructive) {
-                            withAnimation(.spring(response: 0.3, dampingFraction: 0.7)) {
-                                viewModel.deleteSet(set)
-                            }
+                            setToDelete = set
                         } label: {
                             Label("Delete", systemImage: "trash")
                         }
@@ -144,11 +155,36 @@ struct ExerciseCardView: View {
                 showingNotes = true
             }
             Button("Remove Exercise", role: .destructive) {
+                showingRemoveConfirmation = true
+            }
+            Button("Cancel", role: .cancel) {}
+        }
+        .alert("Remove Exercise?", isPresented: $showingRemoveConfirmation) {
+            Button("Cancel", role: .cancel) {}
+            Button("Remove", role: .destructive) {
                 withAnimation(.spring(response: 0.3, dampingFraction: 0.7)) {
                     viewModel.removeExercise(workoutExercise)
                 }
             }
-            Button("Cancel", role: .cancel) {}
+        } message: {
+            Text("This will remove \(workoutExercise.exercise?.name ?? "this exercise") and all its sets from your workout.")
+        }
+        .alert("Delete Set?", isPresented: .constant(setToDelete != nil)) {
+            Button("Cancel", role: .cancel) {
+                setToDelete = nil
+            }
+            Button("Delete", role: .destructive) {
+                if let set = setToDelete {
+                    withAnimation(.spring(response: 0.3, dampingFraction: 0.7)) {
+                        viewModel.deleteSet(set)
+                    }
+                    setToDelete = nil
+                }
+            }
+        } message: {
+            if let set = setToDelete {
+                Text("This will delete Set \(set.setNumber) from this exercise.")
+            }
         }
         .sheet(isPresented: $showingNotes) {
             notesSheet

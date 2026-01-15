@@ -34,6 +34,8 @@ struct WorkoutHomeView: View {
                     // Template quick-start section
                     if !templates.isEmpty {
                         templateQuickStartSection
+                    } else {
+                        templateEmptyState
                     }
 
                     // Quick tips card
@@ -264,6 +266,48 @@ struct WorkoutHomeView: View {
             .background(Color(.systemBackground))
             .cornerRadius(12)
             .shadow(color: Color.black.opacity(0.08), radius: 8, x: 0, y: 2)
+        }
+    }
+
+    private var templateEmptyState: some View {
+        VStack(alignment: .leading, spacing: 12) {
+            HStack {
+                Text("Quick Start")
+                    .font(.headline)
+                    .fontWeight(.bold)
+
+                Spacer()
+            }
+            .padding(.horizontal, 24)
+
+            NavigationLink(destination: TemplateListView(modelContext: modelContext)) {
+                HStack(spacing: 12) {
+                    Image(systemName: "doc.badge.plus")
+                        .font(.title2)
+                        .foregroundColor(.forgeAccent)
+
+                    VStack(alignment: .leading, spacing: 4) {
+                        Text("Create Your First Template")
+                            .font(.subheadline)
+                            .fontWeight(.semibold)
+                            .foregroundColor(.primary)
+
+                        Text("Save workouts for quick start next time")
+                            .font(.caption)
+                            .foregroundColor(.secondary)
+                    }
+
+                    Spacer()
+
+                    Image(systemName: "chevron.right")
+                        .font(.caption)
+                        .foregroundColor(.secondary)
+                }
+                .padding(16)
+                .background(Color(.systemGray6))
+                .cornerRadius(12)
+                .padding(.horizontal, 24)
+            }
         }
     }
 

@@ -26,6 +26,7 @@ class ActiveWorkoutViewModel {
     // Rest timer
     var restTimeRemaining: Int = 0
     var isRestTimerActive = false
+    var isRestTimerPaused = false
     nonisolated(unsafe) private var restTimer: Timer?
 
     init(modelContext: ModelContext) {
@@ -276,10 +277,12 @@ class ActiveWorkoutViewModel {
         restTimer = Timer.scheduledTimer(withTimeInterval: 1.0, repeats: true) { [weak self] _ in
             Task { @MainActor in
                 guard let self = self else { return }
-                if self.restTimeRemaining > 0 {
-                    self.restTimeRemaining -= 1
-                } else {
-                    self.restTimerCompleted()
+                if !self.isRestTimerPaused {
+                    if self.restTimeRemaining > 0 {
+                        self.restTimeRemaining -= 1
+                    } else {
+                        self.restTimerCompleted()
+                    }
                 }
             }
         }
@@ -287,6 +290,7 @@ class ActiveWorkoutViewModel {
 
     func stopRestTimer() {
         isRestTimerActive = false
+        isRestTimerPaused = false
         restTimer?.invalidate()
         restTimer = nil
         restTimeRemaining = 0
@@ -294,6 +298,14 @@ class ActiveWorkoutViewModel {
 
     func skipRestTimer() {
         stopRestTimer()
+    }
+
+    func pauseRestTimer() {
+        isRestTimerPaused = true
+    }
+
+    func resumeRestTimer() {
+        isRestTimerPaused = false
     }
 
     func addRestTime(_ seconds: Int) {
@@ -311,6 +323,32 @@ class ActiveWorkoutViewModel {
         AudioServicesPlaySystemSound(1005)
 
         stopRestTimer()
+    }
+
+    // MARK: - Workout Stats
+
+    var totalVolume: Double {
+        guard let workout = currentWorkout else { return 0 }
+
+        var volume: Double = 0
+        for workoutExercise in workout.exercises {
+            for set in workoutExercise.sets where set.isCompleted {
+                if let weight = set.weight, let reps = set.reps {
+                    volume += weight * Double(reps)
+                }
+            }
+        }
+        return volume
+    }
+
+    var totalSetsCompleted: Int {
+        guard let workout = currentWorkout else { return 0 }
+
+        var count = 0
+        for workoutExercise in workout.exercises {
+            count += workoutExercise.sets.filter { $0.isCompleted }.count
+        }
+        return count
     }
 
     // MARK: - Cleanup

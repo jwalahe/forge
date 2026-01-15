@@ -15,6 +15,8 @@ struct ActiveWorkoutView: View {
     @State private var showingAddExercise = false
     @State private var showingCancelAlert = false
     @State private var showingSummary = false
+    @State private var showingWorkoutNotes = false
+    @State private var workoutNotesText = ""
     @State private var timerPulse = false
     @State private var completedWorkout: Workout?
 
@@ -56,6 +58,7 @@ struct ActiveWorkoutView: View {
                     .padding(.horizontal)
                     .padding(.top, 16)
                 }
+                .scrollDismissesKeyboard(.interactively)
 
                 // Rest timer banner (if active)
                 if viewModel.isRestTimerActive {
@@ -108,23 +111,31 @@ struct ActiveWorkoutView: View {
                 }
 
                 ToolbarItem(placement: .principal) {
-                    HStack(spacing: 6) {
-                        Circle()
-                            .fill(Color.red)
-                            .frame(width: 8, height: 8)
-                            .opacity(timerPulse ? 1.0 : 0.3)
-                            .animation(.easeInOut(duration: 1.0).repeatForever(autoreverses: true), value: timerPulse)
+                    VStack(spacing: 2) {
+                        HStack(spacing: 6) {
+                            Circle()
+                                .fill(Color.red)
+                                .frame(width: 8, height: 8)
+                                .opacity(timerPulse ? 1.0 : 0.3)
+                                .animation(.easeInOut(duration: 1.0).repeatForever(autoreverses: true), value: timerPulse)
 
-                        Text(viewModel.elapsedTime.formattedDuration)
-                            .font(.system(.body, design: .monospaced))
-                            .fontWeight(.semibold)
-                            .foregroundStyle(
-                                LinearGradient(
-                                    colors: [Color.forgeAccent, Color.forgeAccent.opacity(0.8)],
-                                    startPoint: .leading,
-                                    endPoint: .trailing
+                            Text(viewModel.elapsedTime.formattedDuration)
+                                .font(.system(.body, design: .monospaced))
+                                .fontWeight(.semibold)
+                                .foregroundStyle(
+                                    LinearGradient(
+                                        colors: [Color.forgeAccent, Color.forgeAccent.opacity(0.8)],
+                                        startPoint: .leading,
+                                        endPoint: .trailing
+                                    )
                                 )
-                            )
+                        }
+
+                        if viewModel.totalSetsCompleted > 0 {
+                            Text("\(viewModel.totalSetsCompleted) sets • \(Int(viewModel.totalVolume)) lbs")
+                                .font(.caption2)
+                                .foregroundColor(.secondary)
+                        }
                     }
                 }
 
@@ -136,6 +147,16 @@ struct ActiveWorkoutView: View {
                     .foregroundColor(canFinishWorkout ? .forgeSuccess : .secondary)
                     .disabled(!canFinishWorkout)
                 }
+
+                ToolbarItem(placement: .secondaryAction) {
+                    Button {
+                        workoutNotesText = viewModel.currentWorkout?.notes ?? ""
+                        showingWorkoutNotes = true
+                    } label: {
+                        Image(systemName: viewModel.currentWorkout?.notes == nil ? "note.text" : "note.text.badge.plus")
+                            .foregroundColor(.orange)
+                    }
+                }
             }
             .onAppear {
                 timerPulse = true
@@ -144,6 +165,9 @@ struct ActiveWorkoutView: View {
                 AddExerciseSheet(viewModel: viewModel) { exercise in
                     addExercise(exercise)
                 }
+            }
+            .sheet(isPresented: $showingWorkoutNotes) {
+                workoutNotesSheet
             }
             .alert("Cancel Workout?", isPresented: $showingCancelAlert) {
                 Button("Keep Going", role: .cancel) {}
@@ -227,6 +251,25 @@ struct ActiveWorkoutView: View {
                     .cornerRadius(6)
             }
 
+            // Pause/Resume button
+            Button {
+                withAnimation(.spring(response: 0.2, dampingFraction: 0.7)) {
+                    if viewModel.isRestTimerPaused {
+                        viewModel.resumeRestTimer()
+                    } else {
+                        viewModel.pauseRestTimer()
+                    }
+                }
+                UIImpactFeedbackGenerator(style: .light).impactOccurred()
+            } label: {
+                Image(systemName: viewModel.isRestTimerPaused ? "play.fill" : "pause.fill")
+                    .font(.subheadline)
+                    .foregroundColor(.orange)
+                    .frame(width: 32, height: 32)
+                    .background(Color.orange.opacity(0.15))
+                    .cornerRadius(6)
+            }
+
             Button {
                 withAnimation(.spring(response: 0.3, dampingFraction: 0.7)) {
                     viewModel.skipRestTimer()
@@ -252,6 +295,44 @@ struct ActiveWorkoutView: View {
         )
         .cornerRadius(12)
         .shadow(color: Color.black.opacity(0.15), radius: 10, x: 0, y: -2)
+    }
+
+    private var workoutNotesSheet: some View {
+        NavigationStack {
+            VStack(alignment: .leading, spacing: 16) {
+                Text("Add general notes about this workout session.")
+                    .font(.subheadline)
+                    .foregroundColor(.secondary)
+                    .padding(.horizontal)
+
+                TextEditor(text: $workoutNotesText)
+                    .font(.body)
+                    .padding(8)
+                    .background(Color(.systemGray6))
+                    .cornerRadius(12)
+                    .frame(minHeight: 150)
+                    .padding(.horizontal)
+
+                Spacer()
+            }
+            .padding(.top)
+            .navigationTitle("Workout Notes")
+            .navigationBarTitleDisplayMode(.inline)
+            .toolbar {
+                ToolbarItem(placement: .cancellationAction) {
+                    Button("Cancel") {
+                        showingWorkoutNotes = false
+                    }
+                }
+                ToolbarItem(placement: .confirmationAction) {
+                    Button("Save") {
+                        saveWorkoutNotes()
+                        showingWorkoutNotes = false
+                    }
+                    .fontWeight(.semibold)
+                }
+            }
+        }
     }
 
     // MARK: - Computed Properties
@@ -288,6 +369,13 @@ struct ActiveWorkoutView: View {
         completedWorkout = viewModel.currentWorkout
         viewModel.finishWorkout()
         showingSummary = true
+    }
+
+    private func saveWorkoutNotes() {
+        guard let workout = viewModel.currentWorkout else { return }
+        let trimmedNotes = workoutNotesText.trimmingCharacters(in: .whitespacesAndNewlines)
+        workout.notes = trimmedNotes.isEmpty ? nil : trimmedNotes
+        UIImpactFeedbackGenerator(style: .light).impactOccurred()
     }
 }
 
