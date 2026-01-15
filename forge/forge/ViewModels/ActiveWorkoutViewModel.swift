@@ -124,10 +124,66 @@ class ActiveWorkoutViewModel {
 
     func completeSet(_ set: ExerciseSet) {
         set.completedAt = Date()
+
+        // Check if this is a personal record
+        checkAndSetPersonalRecord(set)
+
         workoutRepository.save()
 
         // Start rest timer (90 seconds default)
         startRestTimer(duration: 90)
+    }
+
+    private func checkAndSetPersonalRecord(_ set: ExerciseSet) {
+        guard let workoutExercise = set.workoutExercise,
+              let exercise = workoutExercise.exercise,
+              let currentWeight = set.weight,
+              let currentReps = set.reps,
+              currentReps > 0 else {
+            return
+        }
+
+        // Get all previous completed sets for this exercise (excluding current workout)
+        guard let currentWorkout = currentWorkout else { return }
+
+        var allPreviousSets: [ExerciseSet] = []
+        for workout in workoutRepository.fetchAllWorkouts() {
+            // Skip current workout
+            if workout.id == currentWorkout.id { continue }
+
+            for we in workout.exercises {
+                if we.exercise?.id == exercise.id {
+                    allPreviousSets.append(contentsOf: we.completedSets)
+                }
+            }
+        }
+
+        // If no previous sets, this is a PR
+        if allPreviousSets.isEmpty {
+            set.isPersonalRecord = true
+            return
+        }
+
+        // Calculate estimated 1RM for current set using Brzycki formula
+        let current1RM = currentWeight * (36.0 / (37.0 - Double(currentReps)))
+
+        // Check if this beats any previous set
+        var isPR = true
+        for previousSet in allPreviousSets {
+            guard let prevWeight = previousSet.weight,
+                  let prevReps = previousSet.reps,
+                  prevReps > 0 else { continue }
+
+            let prev1RM = prevWeight * (36.0 / (37.0 - Double(prevReps)))
+
+            // If previous 1RM is higher or equal, this is not a PR
+            if prev1RM >= current1RM {
+                isPR = false
+                break
+            }
+        }
+
+        set.isPersonalRecord = isPR
     }
 
     func deleteSet(_ set: ExerciseSet) {

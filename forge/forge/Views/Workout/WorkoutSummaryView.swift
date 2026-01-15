@@ -16,6 +16,9 @@ struct WorkoutSummaryView: View {
     @State private var workoutName = ""
     @State private var notes = ""
     @State private var celebrationScale = 0.5
+    @State private var showingSaveAsTemplate = false
+    @State private var templateName = ""
+    @Environment(\.modelContext) private var modelContext
 
     var body: some View {
         NavigationStack {
@@ -162,8 +165,35 @@ struct WorkoutSummaryView: View {
                             .background(Color(.systemGray6))
                             .cornerRadius(8)
                     }
+
+                    // Save as Template button
+                    Button {
+                        showingSaveAsTemplate = true
+                    } label: {
+                        HStack {
+                            Image(systemName: "doc.badge.plus")
+                                .foregroundColor(.forgeAccent)
+                            Text("Save as Template")
+                                .fontWeight(.semibold)
+                        }
+                        .frame(maxWidth: .infinity)
+                        .padding()
+                        .background(Color(.systemGray6))
+                        .cornerRadius(12)
+                    }
                 }
                 .padding()
+            }
+            .alert("Save as Template", isPresented: $showingSaveAsTemplate) {
+                TextField("Template Name", text: $templateName)
+                Button("Cancel", role: .cancel) {
+                    templateName = ""
+                }
+                Button("Save") {
+                    saveAsTemplate()
+                }
+            } message: {
+                Text("Give this workout a name to use as a quick-start template")
             }
             .navigationTitle("Summary")
             .navigationBarTitleDisplayMode(.inline)
@@ -198,6 +228,17 @@ struct WorkoutSummaryView: View {
 
         // Haptic feedback
         UINotificationFeedbackGenerator().notificationOccurred(.success)
+    }
+
+    private func saveAsTemplate() {
+        let trimmedName = templateName.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !trimmedName.isEmpty else { return }
+
+        let templateRepo = TemplateRepository(modelContext: modelContext)
+        _ = templateRepo.createTemplateFromWorkout(workout, name: trimmedName)
+
+        templateName = ""
+        UIImpactFeedbackGenerator(style: .medium).impactOccurred()
     }
 }
 

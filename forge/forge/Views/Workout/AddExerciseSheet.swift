@@ -17,6 +17,7 @@ struct AddExerciseSheet: View {
 
     @State private var searchText = ""
     @State private var selectedSegment = 0
+    @State private var showingCreateExercise = false
     @Query private var allExercises: [Exercise]
 
     init(viewModel: ActiveWorkoutViewModel, onExerciseSelected: @escaping (Exercise) -> Void) {
@@ -68,6 +69,21 @@ struct AddExerciseSheet: View {
                     Button("Cancel") {
                         dismiss()
                     }
+                }
+
+                ToolbarItem(placement: .primaryAction) {
+                    Button {
+                        showingCreateExercise = true
+                    } label: {
+                        Label("Create", systemImage: "plus.circle.fill")
+                            .labelStyle(.titleAndIcon)
+                            .fontWeight(.semibold)
+                    }
+                }
+            }
+            .sheet(isPresented: $showingCreateExercise) {
+                CreateExerciseSheet(modelContext: modelContext) { newExercise in
+                    selectExercise(newExercise)
                 }
             }
         }

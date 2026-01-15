@@ -13,6 +13,7 @@ struct WorkoutHomeView: View {
     @State private var viewModel: ActiveWorkoutViewModel?
     @State private var showingActiveWorkout = false
     @State private var pulseAnimation = false
+    @Query(sort: \Template.lastUsedAt, order: .reverse) private var templates: [Template]
 
     var body: some View {
         NavigationStack {
@@ -28,6 +29,11 @@ struct WorkoutHomeView: View {
                     } else {
                         startWorkoutButton
                             .transition(.scale.combined(with: .opacity))
+                    }
+
+                    // Template quick-start section
+                    if !templates.isEmpty {
+                        templateQuickStartSection
                     }
 
                     // Quick tips card
@@ -195,6 +201,72 @@ struct WorkoutHomeView: View {
         }
     }
 
+    private var templateQuickStartSection: some View {
+        VStack(alignment: .leading, spacing: 12) {
+            HStack {
+                Text("Quick Start")
+                    .font(.headline)
+                    .fontWeight(.bold)
+
+                Spacer()
+
+                NavigationLink(destination: TemplateListView(modelContext: modelContext)) {
+                    Text("View All")
+                        .font(.subheadline)
+                        .foregroundColor(.forgeAccent)
+                }
+            }
+            .padding(.horizontal, 24)
+
+            ScrollView(.horizontal, showsIndicators: false) {
+                HStack(spacing: 12) {
+                    ForEach(templates.prefix(5)) { template in
+                        templateQuickStartCard(template)
+                    }
+                }
+                .padding(.horizontal, 24)
+            }
+        }
+    }
+
+    private func templateQuickStartCard(_ template: Template) -> some View {
+        Button {
+            startWorkoutFromTemplate(template)
+        } label: {
+            VStack(alignment: .leading, spacing: 8) {
+                HStack {
+                    Image(systemName: "bolt.fill")
+                        .foregroundColor(.forgeAccent)
+                        .font(.title3)
+
+                    Spacer()
+
+                    Text("\(template.exerciseCount)")
+                        .font(.caption)
+                        .foregroundColor(.secondary)
+                }
+
+                Text(template.name)
+                    .font(.subheadline)
+                    .fontWeight(.semibold)
+                    .foregroundColor(.primary)
+                    .lineLimit(2)
+                    .multilineTextAlignment(.leading)
+
+                if let lastUsed = template.lastUsedAt {
+                    Text("Last: \(lastUsed.formatted(date: .abbreviated, time: .omitted))")
+                        .font(.caption2)
+                        .foregroundColor(.secondary)
+                }
+            }
+            .padding(12)
+            .frame(width: 140, height: 110)
+            .background(Color(.systemBackground))
+            .cornerRadius(12)
+            .shadow(color: Color.black.opacity(0.08), radius: 8, x: 0, y: 2)
+        }
+    }
+
     // MARK: - Actions
 
     private func setupViewModel() {
@@ -223,6 +295,31 @@ struct WorkoutHomeView: View {
         }
 
         UIImpactFeedbackGenerator(style: .light).impactOccurred()
+    }
+
+    private func startWorkoutFromTemplate(_ template: Template) {
+        if viewModel == nil {
+            viewModel = ActiveWorkoutViewModel(modelContext: modelContext)
+        }
+
+        withAnimation(.spring(response: 0.3, dampingFraction: 0.7)) {
+            viewModel?.startNewWorkout()
+
+            // Add exercises from template
+            for templateExercise in template.exercises.sorted(by: { $0.order < $1.order }) {
+                if let exercise = templateExercise.exercise {
+                    viewModel?.addExercise(exercise)
+                }
+            }
+
+            // Update template last used
+            let templateRepo = TemplateRepository(modelContext: modelContext)
+            templateRepo.updateTemplateLastUsed(template)
+
+            showingActiveWorkout = true
+        }
+
+        UIImpactFeedbackGenerator(style: .medium).impactOccurred()
     }
 }
 
