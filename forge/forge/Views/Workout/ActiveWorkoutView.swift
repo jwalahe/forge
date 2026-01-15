@@ -19,6 +19,7 @@ struct ActiveWorkoutView: View {
     @State private var workoutNotesText = ""
     @State private var timerPulse = false
     @State private var completedWorkout: Workout?
+    @Environment(\.editMode) private var editMode
 
     var body: some View {
         NavigationStack {
@@ -48,6 +49,9 @@ struct ActiveWorkoutView: View {
                                         insertion: .move(edge: .bottom).combined(with: .opacity),
                                         removal: .move(edge: .trailing).combined(with: .opacity)
                                     ))
+                                }
+                                .onMove { source, destination in
+                                    moveExercises(from: source, to: destination)
                                 }
                             }
                         }
@@ -155,6 +159,13 @@ struct ActiveWorkoutView: View {
                     } label: {
                         Image(systemName: viewModel.currentWorkout?.notes == nil ? "note.text" : "note.text.badge.plus")
                             .foregroundColor(.orange)
+                    }
+                }
+
+                ToolbarItem(placement: .secondaryAction) {
+                    if let workout = viewModel.currentWorkout, !workout.exercises.isEmpty {
+                        EditButton()
+                            .foregroundColor(.forgeAccent)
                     }
                 }
             }
@@ -375,6 +386,19 @@ struct ActiveWorkoutView: View {
         guard let workout = viewModel.currentWorkout else { return }
         let trimmedNotes = workoutNotesText.trimmingCharacters(in: .whitespacesAndNewlines)
         workout.notes = trimmedNotes.isEmpty ? nil : trimmedNotes
+        UIImpactFeedbackGenerator(style: .light).impactOccurred()
+    }
+
+    private func moveExercises(from source: IndexSet, to destination: Int) {
+        guard let workout = viewModel.currentWorkout else { return }
+        var exercises = sortedExercises(workout)
+        exercises.move(fromOffsets: source, toOffset: destination)
+
+        // Update order property for all affected exercises
+        for (index, exercise) in exercises.enumerated() {
+            exercise.order = index
+        }
+
         UIImpactFeedbackGenerator(style: .light).impactOccurred()
     }
 }

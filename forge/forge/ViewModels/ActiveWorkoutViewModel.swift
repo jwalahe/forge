@@ -124,6 +124,11 @@ class ActiveWorkoutViewModel {
         workoutRepository.save()
     }
 
+    func updateSetRPE(_ set: ExerciseSet, rpe: Int?) {
+        set.rpe = rpe
+        workoutRepository.save()
+    }
+
     func completeSet(_ set: ExerciseSet) {
         set.completedAt = Date()
 

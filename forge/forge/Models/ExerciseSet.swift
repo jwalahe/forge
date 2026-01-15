@@ -15,6 +15,7 @@ class ExerciseSet {
     var setNumber: Int
     var weight: Double?
     var reps: Int?
+    var rpe: Int? // Rate of Perceived Exertion (1-10 scale)
     var setType: SetType
     var completedAt: Date?
     var isPersonalRecord: Bool
@@ -25,6 +26,7 @@ class ExerciseSet {
         setNumber: Int,
         weight: Double? = nil,
         reps: Int? = nil,
+        rpe: Int? = nil,
         setType: SetType = .working,
         completedAt: Date? = nil,
         isPersonalRecord: Bool = false
@@ -34,6 +36,7 @@ class ExerciseSet {
         self.setNumber = setNumber
         self.weight = weight
         self.reps = reps
+        self.rpe = rpe
         self.setType = setType
         self.completedAt = completedAt
         self.isPersonalRecord = isPersonalRecord

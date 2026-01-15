@@ -17,6 +17,7 @@ struct SetRowView: View {
     @State private var repsText: String
     @State private var isCompleting = false
     @State private var showingSetTypeMenu = false
+    @State private var showingRPEMenu = false
     @FocusState private var focusedField: Field?
 
     init(set: ExerciseSet, previousSet: ExerciseSet?, viewModel: ActiveWorkoutViewModel) {
@@ -113,6 +114,18 @@ struct SetRowView: View {
                 }
                 .animation(.easeInOut(duration: 0.2), value: focusedField == .reps)
 
+            // RPE button
+            Button {
+                showingRPEMenu = true
+            } label: {
+                Text(set.rpe.map { "@\($0)" } ?? "+")
+                    .font(.system(size: 12, weight: .semibold))
+                    .foregroundColor(set.rpe == nil ? .secondary.opacity(0.5) : .purple)
+                    .frame(width: 32, height: 32)
+                    .background(set.rpe == nil ? Color.clear : Color.purple.opacity(0.1))
+                    .cornerRadius(6)
+            }
+
             // Progress arrow with animation
             progressArrow
                 .frame(width: 24)
@@ -168,6 +181,19 @@ struct SetRowView: View {
             ForEach(ExerciseSet.SetType.allCases, id: \.self) { type in
                 Button(type.displayName) {
                     updateSetType(type)
+                }
+            }
+            Button("Cancel", role: .cancel) {}
+        }
+        .confirmationDialog("RPE (Rate of Perceived Exertion)", isPresented: $showingRPEMenu) {
+            ForEach(1...10, id: \.self) { rpe in
+                Button("@\(rpe) - \(rpeDescription(rpe))") {
+                    updateRPE(rpe)
+                }
+            }
+            if set.rpe != nil {
+                Button("Clear RPE", role: .destructive) {
+                    updateRPE(nil)
                 }
             }
             Button("Cancel", role: .cancel) {}
@@ -279,6 +305,27 @@ struct SetRowView: View {
 
         // Haptic feedback
         UIImpactFeedbackGenerator(style: .light).impactOccurred()
+    }
+
+    private func updateRPE(_ rpe: Int?) {
+        withAnimation(.spring(response: 0.3, dampingFraction: 0.7)) {
+            viewModel.updateSetRPE(set, rpe: rpe)
+        }
+
+        // Haptic feedback
+        UIImpactFeedbackGenerator(style: .light).impactOccurred()
+    }
+
+    private func rpeDescription(_ rpe: Int) -> String {
+        switch rpe {
+        case 1...3: return "Very Easy"
+        case 4...5: return "Easy"
+        case 6...7: return "Moderate"
+        case 8: return "Hard"
+        case 9: return "Very Hard"
+        case 10: return "Max Effort"
+        default: return ""
+        }
     }
 
     enum Field {
