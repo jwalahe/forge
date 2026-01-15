@@ -9,6 +9,7 @@ import Foundation
 import SwiftUI
 import SwiftData
 import Observation
+import AudioToolbox
 
 @Observable
 @MainActor
@@ -130,8 +131,22 @@ class ActiveWorkoutViewModel {
 
         workoutRepository.save()
 
-        // Start rest timer (90 seconds default)
-        startRestTimer(duration: 90)
+        // Start rest timer with duration based on set type
+        let duration = restDurationForSetType(set.setType)
+        startRestTimer(duration: duration)
+    }
+
+    private func restDurationForSetType(_ setType: ExerciseSet.SetType) -> Int {
+        switch setType {
+        case .warmup:
+            return 60  // 1 minute for warmup sets
+        case .working:
+            return 120 // 2 minutes for heavy working sets
+        case .dropSet:
+            return 60  // 1 minute for drop sets
+        case .toFailure:
+            return 90  // 1.5 minutes for sets to failure
+        }
     }
 
     private func checkAndSetPersonalRecord(_ set: ExerciseSet) {
@@ -264,7 +279,7 @@ class ActiveWorkoutViewModel {
                 if self.restTimeRemaining > 0 {
                     self.restTimeRemaining -= 1
                 } else {
-                    self.stopRestTimer()
+                    self.restTimerCompleted()
                 }
             }
         }
@@ -278,6 +293,23 @@ class ActiveWorkoutViewModel {
     }
 
     func skipRestTimer() {
+        stopRestTimer()
+    }
+
+    func addRestTime(_ seconds: Int) {
+        restTimeRemaining += seconds
+        if !isRestTimerActive {
+            startRestTimer(duration: restTimeRemaining)
+        }
+    }
+
+    private func restTimerCompleted() {
+        // Haptic feedback
+        UINotificationFeedbackGenerator().notificationOccurred(.success)
+
+        // Play system sound (tri-tone)
+        AudioServicesPlaySystemSound(1005)
+
         stopRestTimer()
     }
 

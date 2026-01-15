@@ -210,6 +210,23 @@ struct ActiveWorkoutView: View {
 
             Spacer()
 
+            // +30s button
+            Button {
+                withAnimation(.spring(response: 0.2, dampingFraction: 0.7)) {
+                    viewModel.addRestTime(30)
+                }
+                UIImpactFeedbackGenerator(style: .light).impactOccurred()
+            } label: {
+                Text("+30s")
+                    .font(.caption)
+                    .fontWeight(.semibold)
+                    .foregroundColor(.blue)
+                    .padding(.horizontal, 12)
+                    .padding(.vertical, 6)
+                    .background(Color.blue.opacity(0.15))
+                    .cornerRadius(6)
+            }
+
             Button {
                 withAnimation(.spring(response: 0.3, dampingFraction: 0.7)) {
                     viewModel.skipRestTimer()

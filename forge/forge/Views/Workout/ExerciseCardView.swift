@@ -14,6 +14,7 @@ struct ExerciseCardView: View {
 
     @State private var showingOptions = false
     @State private var showingNotes = false
+    @State private var showingHistory = false
     @State private var notesText = ""
 
     var body: some View {
@@ -24,6 +25,10 @@ struct ExerciseCardView: View {
                     Text(workoutExercise.exercise?.name ?? "Unknown Exercise")
                         .font(.system(size: 18, weight: .bold))
                         .foregroundColor(.primary)
+                        .onLongPressGesture(minimumDuration: 0.5) {
+                            showingHistory = true
+                            UIImpactFeedbackGenerator(style: .medium).impactOccurred()
+                        }
 
                     if let muscleGroup = workoutExercise.exercise?.muscleGroup {
                         Text(muscleGroup.displayName)
@@ -147,6 +152,11 @@ struct ExerciseCardView: View {
         }
         .sheet(isPresented: $showingNotes) {
             notesSheet
+        }
+        .sheet(isPresented: $showingHistory) {
+            if let exercise = workoutExercise.exercise {
+                ExerciseHistoryQuickView(exercise: exercise)
+            }
         }
     }
 

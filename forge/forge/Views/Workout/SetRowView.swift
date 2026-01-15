@@ -30,7 +30,8 @@ struct SetRowView: View {
     }
 
     var body: some View {
-        HStack(spacing: 12) {
+        VStack(alignment: .leading, spacing: 4) {
+            HStack(spacing: 12) {
             // Set number badge with set type indicator
             VStack(spacing: 2) {
                 Text("\(set.setNumber)")
@@ -150,6 +151,17 @@ struct SetRowView: View {
                     )
             }
             .frame(width: 44, height: 44)
+            }
+
+            // Plate calculator helper
+            if let weight = set.weight, weight >= 45, !set.isCompleted {
+                if let plateInfo = PlateCalculator.calculateCompact(totalWeight: weight) {
+                    Text(plateInfo)
+                        .font(.caption2)
+                        .foregroundColor(.secondary)
+                        .padding(.leading, 46) // Align with weight field
+                }
+            }
         }
         .padding(.vertical, 6)
         .confirmationDialog("Set Type", isPresented: $showingSetTypeMenu) {
