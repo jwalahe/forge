@@ -5,11 +5,12 @@
 //  Created by Jwala Kompalli on 1/13/26.
 //
 
-import Foundation
-import SwiftUI
-import SwiftData
-import Observation
+import ActivityKit
 import AudioToolbox
+import Foundation
+import Observation
+import SwiftData
+import SwiftUI
 
 @Observable
 @MainActor
@@ -31,6 +32,9 @@ class ActiveWorkoutViewModel {
     var isRestTimerActive = false
     var isRestTimerPaused = false
     nonisolated(unsafe) private var restTimer: Timer?
+    private var restTimerTotalDuration: Int = 0
+    private var restTimerExerciseName: String = ""
+    private var restTimerSetInfo: String = ""
 
     init(modelContext: ModelContext) {
         self.modelContext = modelContext
@@ -63,6 +67,7 @@ class ActiveWorkoutViewModel {
         guard let workout = currentWorkout else { return }
         workoutRepository.finishWorkout(workout)
         stopTimer()
+        stopRestTimer()
         currentWorkout = nil
         elapsedTime = 0
     }
@@ -71,6 +76,7 @@ class ActiveWorkoutViewModel {
         guard let workout = currentWorkout else { return }
         workoutRepository.deleteWorkout(workout)
         stopTimer()
+        stopRestTimer()
         currentWorkout = nil
         elapsedTime = 0
     }
@@ -161,9 +167,14 @@ class ActiveWorkoutViewModel {
 
         workoutRepository.save()
 
+        // Capture exercise context for Live Activity
+        let exerciseName = set.workoutExercise?.exercise?.name ?? "Rest"
+        let setNumber = set.setNumber
+        let setType = set.setType.displayName
+
         // Start rest timer with duration based on set type
         let duration = restDurationForSetType(set.setType)
-        startRestTimer(duration: duration)
+        startRestTimer(duration: duration, exerciseName: exerciseName, setInfo: "Set \(setNumber) · \(setType)")
     }
 
     private func restDurationForSetType(_ setType: ExerciseSet.SetType) -> Int {
@@ -298,10 +309,20 @@ class ActiveWorkoutViewModel {
 
     // MARK: - Rest Timer
 
-    func startRestTimer(duration: Int) {
+    func startRestTimer(duration: Int, exerciseName: String = "Rest", setInfo: String = "") {
         stopRestTimer()
         restTimeRemaining = duration
+        restTimerTotalDuration = duration
+        restTimerExerciseName = exerciseName
+        restTimerSetInfo = setInfo
         isRestTimerActive = true
+
+        // Start Live Activity
+        LiveActivityManager.shared.startRestTimerActivity(
+            exerciseName: exerciseName,
+            setInfo: setInfo,
+            totalDuration: duration
+        )
 
         restTimer = Timer.scheduledTimer(withTimeInterval: 1.0, repeats: true) { [weak self] _ in
             Task { @MainActor in
@@ -309,6 +330,10 @@ class ActiveWorkoutViewModel {
                 if !self.isRestTimerPaused {
                     if self.restTimeRemaining > 0 {
                         self.restTimeRemaining -= 1
+                        LiveActivityManager.shared.updateRestTimer(
+                            remainingSeconds: self.restTimeRemaining,
+                            isPaused: false
+                        )
                     } else {
                         self.restTimerCompleted()
                     }
@@ -323,6 +348,10 @@ class ActiveWorkoutViewModel {
         restTimer?.invalidate()
         restTimer = nil
         restTimeRemaining = 0
+        restTimerTotalDuration = 0
+
+        // End Live Activity
+        LiveActivityManager.shared.endRestTimerActivity()
     }
 
     func skipRestTimer() {
@@ -331,16 +360,31 @@ class ActiveWorkoutViewModel {
 
     func pauseRestTimer() {
         isRestTimerPaused = true
+        LiveActivityManager.shared.updateRestTimer(
+            remainingSeconds: restTimeRemaining,
+            isPaused: true
+        )
     }
 
     func resumeRestTimer() {
         isRestTimerPaused = false
+        LiveActivityManager.shared.updateRestTimer(
+            remainingSeconds: restTimeRemaining,
+            isPaused: false
+        )
     }
 
     func addRestTime(_ seconds: Int) {
         restTimeRemaining += seconds
+        restTimerTotalDuration += seconds
         if !isRestTimerActive {
-            startRestTimer(duration: restTimeRemaining)
+            startRestTimer(duration: restTimeRemaining, exerciseName: restTimerExerciseName, setInfo: restTimerSetInfo)
+        } else {
+            // Update existing Live Activity with new remaining time
+            LiveActivityManager.shared.updateRestTimer(
+                remainingSeconds: restTimeRemaining,
+                isPaused: isRestTimerPaused
+            )
         }
     }
 
@@ -385,6 +429,8 @@ class ActiveWorkoutViewModel {
     deinit {
         timer?.invalidate()
         restTimer?.invalidate()
+        // Note: LiveActivityManager.endRestTimerActivity() called from stopRestTimer()
+        // deinit cannot call @MainActor methods directly
     }
 }
 
