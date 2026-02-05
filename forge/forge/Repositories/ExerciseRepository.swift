@@ -100,8 +100,9 @@ class ExerciseRepository {
     // MARK: - Default Exercises
 
     func seedDefaultExercises() {
-        let existingCount = fetchAllExercises().count
-        guard existingCount == 0 else { return }
+        // Fetch all exercise names (including archived) to avoid duplicates
+        let descriptor = FetchDescriptor<Exercise>(sortBy: [SortDescriptor(\.name)])
+        let existingNames = Set((try? modelContext.fetch(descriptor))?.map(\.name) ?? [])
 
         let defaultExercises: [(String, Exercise.MuscleGroup, Exercise.Equipment)] = [
             // MARK: Chest (18)
@@ -280,6 +281,7 @@ class ExerciseRepository {
         ]
 
         for (name, muscleGroup, equipment) in defaultExercises {
+            guard !existingNames.contains(name) else { continue }
             _ = createExercise(
                 name: name,
                 muscleGroup: muscleGroup,
