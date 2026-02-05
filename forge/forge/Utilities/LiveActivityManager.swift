@@ -23,7 +23,11 @@ class LiveActivityManager {
         setInfo: String,
         totalDuration: Int
     ) {
-        guard ActivityAuthorizationInfo().areActivitiesEnabled else { return }
+        let authInfo = ActivityAuthorizationInfo()
+        guard authInfo.areActivitiesEnabled else {
+            print("[LiveActivity] Activities not enabled. frequentPushesEnabled: \(authInfo.frequentPushesEnabled)")
+            return
+        }
 
         // End any existing activity first
         endRestTimerActivity()
@@ -46,8 +50,9 @@ class LiveActivityManager {
                 pushType: nil
             )
             currentActivity = activity
+            print("[LiveActivity] Started activity id=\(activity.id) for \(exerciseName)")
         } catch {
-            print("[LiveActivity] Failed to start: \(error.localizedDescription)")
+            print("[LiveActivity] Failed to start: \(error)")
         }
     }
 
