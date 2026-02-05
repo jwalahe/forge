@@ -117,11 +117,12 @@ struct SetRowView: View {
             // RPE button
             Button {
                 showingRPEMenu = true
+                UIImpactFeedbackGenerator(style: .light).impactOccurred()
             } label: {
                 Text(set.rpe.map { "@\($0)" } ?? "+")
                     .font(.system(size: 12, weight: .semibold))
                     .foregroundColor(set.rpe == nil ? .secondary.opacity(0.5) : .purple)
-                    .frame(width: 32, height: 32)
+                    .frame(width: AppConstants.minTouchTarget, height: AppConstants.minTouchTarget)
                     .background(set.rpe == nil ? Color.clear : Color.purple.opacity(0.1))
                     .cornerRadius(6)
             }

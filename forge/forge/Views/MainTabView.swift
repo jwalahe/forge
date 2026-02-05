@@ -36,6 +36,9 @@ struct MainTabView: View {
                 }
                 .tag(3)
         }
+        .onChange(of: selectedTab) { _, _ in
+            UIImpactFeedbackGenerator(style: .light).impactOccurred()
+        }
     }
 }
 

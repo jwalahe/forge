@@ -116,6 +116,71 @@ class WorkoutRepository {
         return nil
     }
 
+    // MARK: - CSV Export
+
+    func generateCSV() -> String {
+        let workouts = fetchAllWorkouts()
+        var csv = "Date,Workout,Exercise,Set,Weight (lbs),Reps,RPE,Set Type\n"
+
+        let dateFormatter = DateFormatter()
+        dateFormatter.dateStyle = .short
+        dateFormatter.timeStyle = .short
+
+        for workout in workouts {
+            guard workout.endTime != nil else { continue }
+            let dateString = dateFormatter.string(from: workout.startTime)
+            let workoutName = workout.displayName.replacingOccurrences(of: ",", with: ";")
+
+            for workoutExercise in workout.exercises.sorted(by: { $0.order < $1.order }) {
+                let exerciseName = (workoutExercise.exercise?.name ?? "Unknown")
+                    .replacingOccurrences(of: ",", with: ";")
+
+                for set in workoutExercise.sets.sorted(by: { $0.setNumber < $1.setNumber }) {
+                    let weight = set.weight.map { String(format: "%.1f", $0) } ?? ""
+                    let reps = set.reps.map { String($0) } ?? ""
+                    let rpe = set.rpe.map { String($0) } ?? ""
+                    let setType = set.setType.displayName
+
+                    csv += "\(dateString),\(workoutName),\(exerciseName),\(set.setNumber),\(weight),\(reps),\(rpe),\(setType)\n"
+                }
+            }
+        }
+
+        return csv
+    }
+
+    // MARK: - Recent Exercises
+
+    func fetchRecentExercises(limit: Int = 10) -> [Exercise] {
+        let descriptor = FetchDescriptor<Workout>(
+            predicate: #Predicate { workout in
+                workout.endTime != nil
+            },
+            sortBy: [SortDescriptor(\.startTime, order: .reverse)]
+        )
+
+        guard let workouts = try? modelContext.fetch(descriptor) else {
+            return []
+        }
+
+        var seen = Set<UUID>()
+        var recentExercises: [Exercise] = []
+
+        for workout in workouts {
+            let sorted = workout.exercises.sorted { $0.order < $1.order }
+            for workoutExercise in sorted {
+                guard let exercise = workoutExercise.exercise,
+                      !exercise.isArchived,
+                      !seen.contains(exercise.id) else { continue }
+                seen.insert(exercise.id)
+                recentExercises.append(exercise)
+                if recentExercises.count >= limit { return recentExercises }
+            }
+        }
+
+        return recentExercises
+    }
+
     // MARK: - Save
 
     func save() {

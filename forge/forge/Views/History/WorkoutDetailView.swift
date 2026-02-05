@@ -18,41 +18,57 @@ struct WorkoutDetailView: View {
 
     var body: some View {
         NavigationStack {
-            ScrollView {
-                VStack(spacing: 24) {
-                    // Header stats
-                    statsGrid
+            ZStack {
+                // Background gradient
+                LinearGradient(
+                    colors: [Color(.systemBackground), Color(.systemGray6).opacity(0.3)],
+                    startPoint: .top,
+                    endPoint: .bottom
+                )
+                .ignoresSafeArea()
 
-                    // Exercises
-                    VStack(alignment: .leading, spacing: 16) {
-                        Text("Exercises")
-                            .font(.title3)
-                            .fontWeight(.semibold)
-                            .padding(.horizontal)
+                ScrollView {
+                    VStack(spacing: 24) {
+                        // Header stats
+                        statsGrid
 
-                        ForEach(sortedExercises) { workoutExercise in
-                            exerciseDetailCard(workoutExercise)
-                        }
-                    }
-
-                    // Notes
-                    if let notes = workout.notes, !notes.isEmpty {
-                        VStack(alignment: .leading, spacing: 8) {
-                            Text("Notes")
+                        // Exercises
+                        VStack(alignment: .leading, spacing: 16) {
+                            Text("Exercises")
                                 .font(.title3)
                                 .fontWeight(.semibold)
+                                .padding(.horizontal)
 
-                            Text(notes)
-                                .foregroundColor(.secondary)
+                            ForEach(sortedExercises) { workoutExercise in
+                                exerciseDetailCard(workoutExercise)
+                                    .transition(.asymmetric(
+                                        insertion: .move(edge: .bottom).combined(with: .opacity),
+                                        removal: .move(edge: .trailing).combined(with: .opacity)
+                                    ))
+                            }
                         }
-                        .frame(maxWidth: .infinity, alignment: .leading)
-                        .padding()
-                        .background(Color(.systemGray6))
-                        .cornerRadius(AppConstants.cornerRadius)
-                        .padding(.horizontal)
+
+                        // Notes
+                        if let notes = workout.notes, !notes.isEmpty {
+                            VStack(alignment: .leading, spacing: 8) {
+                                Text("Notes")
+                                    .font(.title3)
+                                    .fontWeight(.semibold)
+
+                                Text(notes)
+                                    .foregroundColor(.secondary)
+                            }
+                            .frame(maxWidth: .infinity, alignment: .leading)
+                            .padding()
+                            .background(Color(.systemGray6))
+                            .cornerRadius(AppConstants.cornerRadius)
+                            .shadow(color: Color.black.opacity(0.05), radius: 6, x: 0, y: 2)
+                            .padding(.horizontal)
+                            .transition(.opacity)
+                        }
                     }
+                    .padding(.vertical)
                 }
-                .padding(.vertical)
             }
             .navigationTitle(workout.displayName)
             .navigationBarTitleDisplayMode(.inline)
@@ -153,6 +169,7 @@ struct WorkoutDetailView: View {
         .padding()
         .background(Color(.systemGray6))
         .cornerRadius(AppConstants.cornerRadius)
+        .shadow(color: Color.black.opacity(0.05), radius: 6, x: 0, y: 2)
         .padding(.horizontal)
     }
 
@@ -168,16 +185,14 @@ struct WorkoutDetailView: View {
         let viewModel = ActiveWorkoutViewModel(modelContext: modelContext)
         viewModel.startNewWorkout()
 
-        // Add all exercises from the past workout
+        // Add all exercises with their previous weights/reps pre-filled
         for workoutExercise in sortedExercises {
-            guard let exercise = workoutExercise.exercise else { continue }
-            viewModel.addExercise(exercise)
+            viewModel.addExerciseFromPastWorkout(workoutExercise)
         }
 
         activeWorkoutViewModel = viewModel
         showingRepeatWorkout = true
 
-        // Haptic feedback
         UIImpactFeedbackGenerator(style: .medium).impactOccurred()
     }
 }

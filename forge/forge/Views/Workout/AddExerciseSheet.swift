@@ -54,13 +54,16 @@ struct AddExerciseSheet: View {
 
                 // Exercise list
                 List {
-                    if selectedSegment == 0 {
+                    if filteredExercises.isEmpty && !searchText.isEmpty {
+                        noResultsEmptyState
+                    } else if selectedSegment == 0 {
                         allExercisesSection
                     } else {
                         byMuscleGroupSections
                     }
                 }
                 .listStyle(.plain)
+                .animation(.spring(response: 0.3, dampingFraction: 0.7), value: selectedSegment)
             }
             .navigationTitle("Add Exercise")
             .navigationBarTitleDisplayMode(.inline)
@@ -74,6 +77,7 @@ struct AddExerciseSheet: View {
                 ToolbarItem(placement: .primaryAction) {
                     Button {
                         showingCreateExercise = true
+                        UIImpactFeedbackGenerator(style: .light).impactOccurred()
                     } label: {
                         Label("Create", systemImage: "plus.circle.fill")
                             .labelStyle(.titleAndIcon)
@@ -86,10 +90,64 @@ struct AddExerciseSheet: View {
                     selectExercise(newExercise)
                 }
             }
+            .onChange(of: selectedSegment) { _, _ in
+                UIImpactFeedbackGenerator(style: .light).impactOccurred()
+            }
         }
     }
 
     // MARK: - Subviews
+
+    private var noResultsEmptyState: some View {
+        VStack(spacing: 16) {
+            Image(systemName: "magnifyingglass")
+                .font(.system(size: 40))
+                .foregroundStyle(
+                    LinearGradient(
+                        colors: [Color.forgeMuted, Color.forgeMuted.opacity(0.6)],
+                        startPoint: .topLeading,
+                        endPoint: .bottomTrailing
+                    )
+                )
+                .padding(.top, 40)
+
+            VStack(spacing: 8) {
+                Text("No Exercises Found")
+                    .font(.title3)
+                    .fontWeight(.semibold)
+
+                Text("No results for \"\(searchText)\". Try a different search or create a custom exercise.")
+                    .font(.subheadline)
+                    .foregroundColor(.secondary)
+                    .multilineTextAlignment(.center)
+            }
+
+            Button {
+                showingCreateExercise = true
+                UIImpactFeedbackGenerator(style: .light).impactOccurred()
+            } label: {
+                Label("Create Custom Exercise", systemImage: "plus.circle.fill")
+                    .fontWeight(.semibold)
+                    .foregroundColor(.white)
+                    .padding(.horizontal, 20)
+                    .frame(height: AppConstants.secondaryButtonHeight)
+                    .background(
+                        LinearGradient(
+                            colors: [Color.forgeAccent, Color.forgeAccent.opacity(0.85)],
+                            startPoint: .leading,
+                            endPoint: .trailing
+                        )
+                    )
+                    .cornerRadius(AppConstants.cornerRadius)
+            }
+            .padding(.top, 8)
+        }
+        .frame(maxWidth: .infinity)
+        .padding()
+        .listRowBackground(Color.clear)
+        .listRowSeparator(.hidden)
+        .transition(.opacity)
+    }
 
     private var allExercisesSection: some View {
         ForEach(filteredExercises) { exercise in

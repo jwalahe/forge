@@ -18,29 +18,41 @@ struct CalendarView: View {
 
     var body: some View {
         NavigationStack {
-            ScrollView {
-                VStack(spacing: 24) {
-                    // Month navigation
-                    monthHeader
+            ZStack {
+                // Background gradient
+                LinearGradient(
+                    colors: [Color(.systemBackground), Color(.systemGray6).opacity(0.3)],
+                    startPoint: .top,
+                    endPoint: .bottom
+                )
+                .ignoresSafeArea()
 
-                    // Day headers
-                    dayHeaders
+                ScrollView {
+                    VStack(spacing: 24) {
+                        // Month navigation
+                        monthHeader
 
-                    // Calendar grid
-                    calendarGrid
+                        // Day headers
+                        dayHeaders
 
-                    // Selected date workouts
-                    if let selectedDate = selectedDate {
-                        selectedDateWorkouts(for: selectedDate)
+                        // Calendar grid
+                        calendarGrid
+
+                        // Selected date workouts
+                        if let selectedDate = selectedDate {
+                            selectedDateWorkouts(for: selectedDate)
+                                .transition(.move(edge: .bottom).combined(with: .opacity))
+                        }
                     }
+                    .padding()
                 }
-                .padding()
             }
             .navigationTitle("Calendar")
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
                 ToolbarItem(placement: .cancellationAction) {
                     Button("Done") {
+                        UIImpactFeedbackGenerator(style: .light).impactOccurred()
                         dismiss()
                     }
                 }
@@ -53,10 +65,14 @@ struct CalendarView: View {
     private var monthHeader: some View {
         HStack {
             Button {
-                changeMonth(by: -1)
+                withAnimation(.spring(response: 0.3, dampingFraction: 0.7)) {
+                    changeMonth(by: -1)
+                }
+                UIImpactFeedbackGenerator(style: .light).impactOccurred()
             } label: {
                 Image(systemName: "chevron.left")
                     .font(.title3)
+                    .frame(width: AppConstants.minTouchTarget, height: AppConstants.minTouchTarget)
             }
 
             Spacer()
@@ -68,10 +84,14 @@ struct CalendarView: View {
             Spacer()
 
             Button {
-                changeMonth(by: 1)
+                withAnimation(.spring(response: 0.3, dampingFraction: 0.7)) {
+                    changeMonth(by: 1)
+                }
+                UIImpactFeedbackGenerator(style: .light).impactOccurred()
             } label: {
                 Image(systemName: "chevron.right")
                     .font(.title3)
+                    .frame(width: AppConstants.minTouchTarget, height: AppConstants.minTouchTarget)
             }
         }
         .padding(.horizontal)
@@ -90,13 +110,13 @@ struct CalendarView: View {
     }
 
     private var calendarGrid: some View {
-        LazyVGrid(columns: columns, spacing: 12) {
+        LazyVGrid(columns: columns, spacing: 8) {
             ForEach(daysInMonth, id: \.self) { date in
                 if let date = date {
                     dayCell(for: date)
                 } else {
                     Color.clear
-                        .frame(height: 40)
+                        .frame(height: AppConstants.minTouchTarget)
                 }
             }
         }
@@ -108,13 +128,22 @@ struct CalendarView: View {
         let isToday = calendar.isDateInToday(date)
 
         return Button {
-            if hasWorkout {
-                selectedDate = date
+            withAnimation(.spring(response: 0.3, dampingFraction: 0.6)) {
+                if hasWorkout {
+                    selectedDate = date
+                }
             }
+            UIImpactFeedbackGenerator(style: .light).impactOccurred()
         } label: {
             ZStack {
                 Circle()
                     .fill(isSelected ? Color.forgeAccent : Color.clear)
+                    .shadow(
+                        color: isSelected ? Color.forgeAccent.opacity(0.3) : Color.clear,
+                        radius: 6,
+                        x: 0,
+                        y: 2
+                    )
 
                 if isToday && !isSelected {
                     Circle()
@@ -129,11 +158,12 @@ struct CalendarView: View {
                 if hasWorkout && !isSelected {
                     Circle()
                         .fill(Color.forgeAccent)
-                        .frame(width: 4, height: 4)
-                        .offset(y: 14)
+                        .frame(width: 5, height: 5)
+                        .offset(y: 16)
                 }
             }
-            .frame(height: 40)
+            .frame(width: AppConstants.minTouchTarget, height: AppConstants.minTouchTarget)
+            .animation(.spring(response: 0.3, dampingFraction: 0.6), value: isSelected)
         }
         .disabled(!hasWorkout)
     }
@@ -151,7 +181,12 @@ struct CalendarView: View {
                     .padding(.horizontal)
                     .padding(.vertical, 8)
                     .background(Color(.systemGray6))
-                    .cornerRadius(8)
+                    .cornerRadius(AppConstants.cornerRadius)
+                    .shadow(color: Color.black.opacity(0.05), radius: 6, x: 0, y: 2)
+                    .transition(.asymmetric(
+                        insertion: .move(edge: .bottom).combined(with: .opacity),
+                        removal: .move(edge: .trailing).combined(with: .opacity)
+                    ))
             }
         }
         .padding(.top, 16)

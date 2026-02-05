@@ -33,10 +33,12 @@ struct CreateTemplateView: View {
                     if selectedExercises.isEmpty {
                         Button {
                             showingExercisePicker = true
+                            UIImpactFeedbackGenerator(style: .light).impactOccurred()
                         } label: {
                             Label("Add Exercises", systemImage: "plus.circle")
                                 .foregroundColor(.forgeAccent)
                         }
+                        .frame(minHeight: AppConstants.minTouchTarget)
                     } else {
                         ForEach(selectedExercises) { exercise in
                             HStack {
@@ -46,15 +48,21 @@ struct CreateTemplateView: View {
                                     .font(.caption)
                                     .foregroundColor(.secondary)
                             }
+                            .transition(.asymmetric(
+                                insertion: .move(edge: .bottom).combined(with: .opacity),
+                                removal: .move(edge: .trailing).combined(with: .opacity)
+                            ))
                         }
                         .onDelete(perform: deleteExercise)
 
                         Button {
                             showingExercisePicker = true
+                            UIImpactFeedbackGenerator(style: .light).impactOccurred()
                         } label: {
                             Label("Add More", systemImage: "plus.circle")
                                 .foregroundColor(.forgeAccent)
                         }
+                        .frame(minHeight: AppConstants.minTouchTarget)
                     }
                 } header: {
                     Text("Exercises")
@@ -95,7 +103,10 @@ struct CreateTemplateView: View {
     }
 
     private func deleteExercise(at offsets: IndexSet) {
-        selectedExercises.remove(atOffsets: offsets)
+        withAnimation(.spring(response: 0.3, dampingFraction: 0.7)) {
+            selectedExercises.remove(atOffsets: offsets)
+        }
+        UIImpactFeedbackGenerator(style: .light).impactOccurred()
     }
 
     private func saveTemplate() {
@@ -142,6 +153,7 @@ struct ExercisePickerView: View {
                             if selectedExercises.contains(exercise.id) {
                                 Image(systemName: "checkmark.circle.fill")
                                     .foregroundColor(.forgeAccent)
+                                    .transition(.scale.combined(with: .opacity))
                             }
                         }
                     }
@@ -177,11 +189,14 @@ struct ExercisePickerView: View {
     }
 
     private func toggleExercise(_ exercise: Exercise) {
-        if selectedExercises.contains(exercise.id) {
-            selectedExercises.remove(exercise.id)
-        } else {
-            selectedExercises.insert(exercise.id)
+        withAnimation(.spring(response: 0.3, dampingFraction: 0.7)) {
+            if selectedExercises.contains(exercise.id) {
+                selectedExercises.remove(exercise.id)
+            } else {
+                selectedExercises.insert(exercise.id)
+            }
         }
+        UIImpactFeedbackGenerator(style: .light).impactOccurred()
     }
 }
 

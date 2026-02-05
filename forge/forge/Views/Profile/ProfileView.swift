@@ -13,6 +13,8 @@ struct ProfileView: View {
     @State private var historyViewModel: HistoryViewModel?
     @AppStorage(SettingsKey.weightUnit.rawValue) private var weightUnit: WeightUnit = .lbs
     @AppStorage(SettingsKey.defaultRestTimer.rawValue) private var defaultRestTimer: Int = 90
+    @State private var showingShareSheet = false
+    @State private var csvFileURL: URL?
 
     var body: some View {
         NavigationStack {
@@ -56,6 +58,29 @@ struct ProfileView: View {
                         Text("3 minutes").tag(180)
                     }
                 }
+                .onChange(of: weightUnit) { _, _ in
+                    UIImpactFeedbackGenerator(style: .light).impactOccurred()
+                }
+                .onChange(of: defaultRestTimer) { _, _ in
+                    UIImpactFeedbackGenerator(style: .light).impactOccurred()
+                }
+
+                // Data Section
+                Section("Data") {
+                    Button {
+                        exportWorkouts()
+                    } label: {
+                        HStack {
+                            Image(systemName: "square.and.arrow.up")
+                                .foregroundColor(.forgeAccent)
+                            Text("Export Workouts")
+                            Spacer()
+                            Image(systemName: "doc.text")
+                                .font(.caption)
+                                .foregroundColor(.secondary)
+                        }
+                    }
+                }
 
                 // About Section
                 Section("About") {
@@ -80,6 +105,11 @@ struct ProfileView: View {
             .navigationTitle("Profile")
             .onAppear {
                 setupViewModel()
+            }
+            .sheet(isPresented: $showingShareSheet) {
+                if let url = csvFileURL {
+                    ShareSheet(activityItems: [url])
+                }
             }
         }
     }
@@ -127,6 +157,15 @@ struct ProfileView: View {
         }
     }
 
+    private func exportWorkouts() {
+        guard let viewModel = historyViewModel else { return }
+        if let url = viewModel.generateCSVFileURL() {
+            csvFileURL = url
+            showingShareSheet = true
+        }
+        UIImpactFeedbackGenerator(style: .medium).impactOccurred()
+    }
+
     private func workoutsThisWeek(_ viewModel: HistoryViewModel) -> Int {
         let calendar = Calendar.current
         let now = Date()
@@ -170,8 +209,21 @@ struct StatCardCompact: View {
         .frame(maxWidth: .infinity, alignment: .leading)
         .padding()
         .background(Color(.systemGray6))
-        .cornerRadius(12)
+        .cornerRadius(AppConstants.cornerRadius)
+        .shadow(color: Color.black.opacity(0.05), radius: 6, x: 0, y: 2)
     }
+}
+
+// MARK: - Share Sheet
+
+struct ShareSheet: UIViewControllerRepresentable {
+    let activityItems: [Any]
+
+    func makeUIViewController(context: Context) -> UIActivityViewController {
+        UIActivityViewController(activityItems: activityItems, applicationActivities: nil)
+    }
+
+    func updateUIViewController(_ uiViewController: UIActivityViewController, context: Context) {}
 }
 
 #Preview {

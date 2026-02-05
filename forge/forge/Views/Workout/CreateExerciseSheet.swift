@@ -39,6 +39,9 @@ struct CreateExerciseSheet: View {
                     }
                     .pickerStyle(.menu)
                 }
+                .onChange(of: selectedMuscleGroup) { _, _ in
+                    UIImpactFeedbackGenerator(style: .light).impactOccurred()
+                }
 
                 Section("Equipment") {
                     Picker("Equipment", selection: $selectedEquipment) {
@@ -47,6 +50,9 @@ struct CreateExerciseSheet: View {
                         }
                     }
                     .pickerStyle(.menu)
+                }
+                .onChange(of: selectedEquipment) { _, _ in
+                    UIImpactFeedbackGenerator(style: .light).impactOccurred()
                 }
             }
             .navigationTitle("Create Exercise")
@@ -88,8 +94,8 @@ struct CreateExerciseSheet: View {
 
         onExerciseCreated(newExercise)
 
-        // Haptic feedback
-        UIImpactFeedbackGenerator(style: .medium).impactOccurred()
+        // Success haptic feedback
+        UINotificationFeedbackGenerator().notificationOccurred(.success)
 
         dismiss()
     }

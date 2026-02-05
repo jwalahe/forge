@@ -140,7 +140,7 @@ struct ExerciseCardView: View {
                 }
                 .foregroundColor(.forgeAccent)
                 .frame(maxWidth: .infinity)
-                .padding(.vertical, 12)
+                .frame(height: AppConstants.minTouchTarget)
                 .background(Color.forgeAccent.opacity(0.08))
                 .cornerRadius(10)
             }

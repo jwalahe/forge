@@ -34,6 +34,7 @@ struct ExerciseLibraryView: View {
                 ToolbarItem(placement: .topBarTrailing) {
                     Button {
                         showingCreateCustom = true
+                        UIImpactFeedbackGenerator(style: .light).impactOccurred()
                     } label: {
                         Image(systemName: "plus.circle.fill")
                             .font(.title3)
@@ -61,11 +62,15 @@ struct ExerciseLibraryView: View {
 
             if !searchText.isEmpty {
                 Button {
-                    searchText = ""
+                    withAnimation(.spring(response: 0.3, dampingFraction: 0.7)) {
+                        searchText = ""
+                    }
+                    UIImpactFeedbackGenerator(style: .light).impactOccurred()
                 } label: {
                     Image(systemName: "xmark.circle.fill")
                         .foregroundColor(.secondary)
                 }
+                .transition(.scale.combined(with: .opacity))
             }
         }
         .padding(12)
@@ -112,17 +117,85 @@ struct ExerciseLibraryView: View {
 
     private var exerciseList: some View {
         List {
-            ForEach(filteredExercises) { exercise in
-                ExerciseRow(exercise: exercise)
-                    .contentShape(Rectangle())
-                    .onTapGesture {
-                        selectedExercise = exercise
-                    }
-                    .listRowInsets(EdgeInsets(top: 8, leading: 16, bottom: 8, trailing: 16))
-                    .listRowSeparator(.hidden)
+            if filteredExercises.isEmpty {
+                filteredEmptyState
+            } else {
+                ForEach(filteredExercises) { exercise in
+                    ExerciseRow(exercise: exercise)
+                        .contentShape(Rectangle())
+                        .onTapGesture {
+                            selectedExercise = exercise
+                            UIImpactFeedbackGenerator(style: .light).impactOccurred()
+                        }
+                        .listRowInsets(EdgeInsets(top: 8, leading: 16, bottom: 8, trailing: 16))
+                        .listRowSeparator(.hidden)
+                        .transition(.asymmetric(
+                            insertion: .move(edge: .bottom).combined(with: .opacity),
+                            removal: .move(edge: .trailing).combined(with: .opacity)
+                        ))
+                }
             }
         }
         .listStyle(.plain)
+        .animation(.spring(response: 0.3, dampingFraction: 0.7), value: filteredExercises.count)
+    }
+
+    private var filteredEmptyState: some View {
+        VStack(spacing: 16) {
+            Image(systemName: "magnifyingglass")
+                .font(.system(size: 40))
+                .foregroundStyle(
+                    LinearGradient(
+                        colors: [Color.forgeMuted, Color.forgeMuted.opacity(0.6)],
+                        startPoint: .topLeading,
+                        endPoint: .bottomTrailing
+                    )
+                )
+                .padding(.top, 40)
+
+            VStack(spacing: 8) {
+                Text("No Exercises Found")
+                    .font(.title3)
+                    .fontWeight(.semibold)
+
+                if !searchText.isEmpty {
+                    Text("No results for \"\(searchText)\"\(selectedMuscleGroup != nil ? " in \(selectedMuscleGroup!.displayName)" : "").")
+                        .font(.subheadline)
+                        .foregroundColor(.secondary)
+                        .multilineTextAlignment(.center)
+                } else if selectedMuscleGroup != nil {
+                    Text("No exercises in \(selectedMuscleGroup!.displayName). Try a different filter or create a custom exercise.")
+                        .font(.subheadline)
+                        .foregroundColor(.secondary)
+                        .multilineTextAlignment(.center)
+                }
+            }
+
+            Button {
+                showingCreateCustom = true
+                UIImpactFeedbackGenerator(style: .light).impactOccurred()
+            } label: {
+                Label("Create Custom Exercise", systemImage: "plus.circle.fill")
+                    .fontWeight(.semibold)
+                    .foregroundColor(.white)
+                    .padding(.horizontal, 20)
+                    .frame(height: AppConstants.secondaryButtonHeight)
+                    .background(
+                        LinearGradient(
+                            colors: [Color.forgeAccent, Color.forgeAccent.opacity(0.85)],
+                            startPoint: .leading,
+                            endPoint: .trailing
+                        )
+                    )
+                    .cornerRadius(AppConstants.cornerRadius)
+            }
+            .padding(.top, 8)
+        }
+        .frame(maxWidth: .infinity)
+        .padding()
+        .listRowBackground(Color.clear)
+        .listRowSeparator(.hidden)
+        .transition(.opacity)
     }
 
     // MARK: - Computed Properties
@@ -155,7 +228,10 @@ struct FilterChip: View {
     let action: () -> Void
 
     var body: some View {
-        Button(action: action) {
+        Button {
+            action()
+            UIImpactFeedbackGenerator(style: .light).impactOccurred()
+        } label: {
             HStack(spacing: 6) {
                 Text(title)
                     .font(.subheadline)
@@ -174,6 +250,13 @@ struct FilterChip: View {
             .background(isSelected ? Color.forgeAccent : Color(.systemGray6))
             .foregroundColor(isSelected ? .white : .primary)
             .clipShape(Capsule())
+            .shadow(
+                color: isSelected ? Color.forgeAccent.opacity(0.3) : Color.clear,
+                radius: 6,
+                x: 0,
+                y: 2
+            )
+            .animation(.spring(response: 0.3, dampingFraction: 0.6), value: isSelected)
         }
     }
 }

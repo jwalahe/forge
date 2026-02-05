@@ -38,6 +38,11 @@ struct WorkoutHomeView: View {
                         templateEmptyState
                     }
 
+                    // Recent exercises section
+                    if let vm = viewModel, !vm.recentExercises.isEmpty {
+                        recentExercisesSection
+                    }
+
                     // Quick tips card
                     quickTipsCard
 
@@ -311,6 +316,44 @@ struct WorkoutHomeView: View {
         }
     }
 
+    private var recentExercisesSection: some View {
+        VStack(alignment: .leading, spacing: 12) {
+            Text("Recent Exercises")
+                .font(.headline)
+                .fontWeight(.bold)
+                .padding(.horizontal, 24)
+
+            ScrollView(.horizontal, showsIndicators: false) {
+                HStack(spacing: 10) {
+                    if let vm = viewModel {
+                        ForEach(vm.recentExercises) { exercise in
+                            Button {
+                                quickAddRecentExercise(exercise)
+                            } label: {
+                                HStack(spacing: 8) {
+                                    Image(systemName: "clock.arrow.circlepath")
+                                        .font(.caption)
+                                        .foregroundColor(.forgeAccent)
+
+                                    Text(exercise.name)
+                                        .font(.subheadline)
+                                        .fontWeight(.medium)
+                                        .foregroundColor(.primary)
+                                        .lineLimit(1)
+                                }
+                                .padding(.horizontal, 14)
+                                .padding(.vertical, 10)
+                                .background(Color(.systemGray6))
+                                .cornerRadius(AppConstants.cornerRadius)
+                            }
+                        }
+                    }
+                }
+                .padding(.horizontal, 24)
+            }
+        }
+    }
+
     // MARK: - Actions
 
     private func setupViewModel() {
@@ -318,6 +361,7 @@ struct WorkoutHomeView: View {
             viewModel = ActiveWorkoutViewModel(modelContext: modelContext)
         }
         viewModel?.loadInProgressWorkout()
+        viewModel?.loadRecentExercises()
     }
 
     private func startWorkout() {
@@ -339,6 +383,24 @@ struct WorkoutHomeView: View {
         }
 
         UIImpactFeedbackGenerator(style: .light).impactOccurred()
+    }
+
+    private func quickAddRecentExercise(_ exercise: Exercise) {
+        if viewModel == nil {
+            viewModel = ActiveWorkoutViewModel(modelContext: modelContext)
+        }
+
+        // If no workout in progress, start a new one
+        if viewModel?.currentWorkout == nil {
+            viewModel?.startNewWorkout()
+        }
+
+        withAnimation(.spring(response: 0.3, dampingFraction: 0.7)) {
+            viewModel?.addExercise(exercise)
+            showingActiveWorkout = true
+        }
+
+        UIImpactFeedbackGenerator(style: .medium).impactOccurred()
     }
 
     private func startWorkoutFromTemplate(_ template: Template) {

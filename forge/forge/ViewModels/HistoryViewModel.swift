@@ -86,13 +86,26 @@ class HistoryViewModel {
     }
 
     func repeatWorkout(_ workout: Workout, activeWorkoutViewModel: ActiveWorkoutViewModel) {
-        // Start a new workout
         activeWorkoutViewModel.startNewWorkout()
 
-        // Add all exercises from the past workout
+        // Add all exercises with their previous weights/reps pre-filled
         for workoutExercise in workout.exercises.sorted(by: { $0.order < $1.order }) {
-            guard let exercise = workoutExercise.exercise else { continue }
-            activeWorkoutViewModel.addExercise(exercise)
+            activeWorkoutViewModel.addExerciseFromPastWorkout(workoutExercise)
+        }
+    }
+
+    // MARK: - Export
+
+    func generateCSVFileURL() -> URL? {
+        let csv = workoutRepository.generateCSV()
+        let fileName = "forge_workouts_\(Date().formatted("yyyy-MM-dd")).csv"
+        let tempURL = FileManager.default.temporaryDirectory.appendingPathComponent(fileName)
+
+        do {
+            try csv.write(to: tempURL, atomically: true, encoding: .utf8)
+            return tempURL
+        } catch {
+            return nil
         }
     }
 

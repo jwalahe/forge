@@ -17,24 +17,39 @@ struct ExerciseHistoryQuickView: View {
 
     var body: some View {
         NavigationStack {
-            List {
-                if recentSessions.isEmpty {
-                    ContentUnavailableView(
-                        "No History",
-                        systemImage: "clock.arrow.circlepath",
-                        description: Text("No previous performances for this exercise")
-                    )
-                } else {
-                    ForEach(Array(recentSessions.enumerated()), id: \.offset) { index, session in
-                        sessionCard(session: session, index: index)
+            ZStack {
+                // Background gradient
+                LinearGradient(
+                    colors: [Color(.systemBackground), Color(.systemGray6).opacity(0.3)],
+                    startPoint: .top,
+                    endPoint: .bottom
+                )
+                .ignoresSafeArea()
+
+                List {
+                    if recentSessions.isEmpty {
+                        emptyHistoryState
+                    } else {
+                        ForEach(Array(recentSessions.enumerated()), id: \.offset) { index, session in
+                            sessionCard(session: session, index: index)
+                                .listRowSeparator(.hidden)
+                                .listRowBackground(Color.clear)
+                                .transition(.asymmetric(
+                                    insertion: .move(edge: .bottom).combined(with: .opacity),
+                                    removal: .move(edge: .trailing).combined(with: .opacity)
+                                ))
+                        }
                     }
                 }
+                .listStyle(.plain)
+                .scrollContentBackground(.hidden)
             }
             .navigationTitle(exercise.name)
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
                 ToolbarItem(placement: .cancellationAction) {
                     Button("Close") {
+                        UIImpactFeedbackGenerator(style: .light).impactOccurred()
                         dismiss()
                     }
                 }
@@ -43,6 +58,37 @@ struct ExerciseHistoryQuickView: View {
                 loadRecentSessions()
             }
         }
+    }
+
+    // MARK: - Subviews
+
+    private var emptyHistoryState: some View {
+        VStack(spacing: 20) {
+            Image(systemName: "clock.arrow.circlepath")
+                .font(.system(size: 60))
+                .foregroundStyle(
+                    LinearGradient(
+                        colors: [Color.forgeAccent, Color.forgeAccent.opacity(0.6)],
+                        startPoint: .topLeading,
+                        endPoint: .bottomTrailing
+                    )
+                )
+                .padding(.top, 40)
+
+            VStack(spacing: 8) {
+                Text("No History")
+                    .font(.title2)
+                    .fontWeight(.bold)
+
+                Text("No previous performances for this exercise")
+                    .font(.subheadline)
+                    .foregroundColor(.secondary)
+                    .multilineTextAlignment(.center)
+            }
+        }
+        .frame(maxWidth: .infinity)
+        .listRowBackground(Color.clear)
+        .listRowSeparator(.hidden)
     }
 
     private func sessionCard(session: (workout: Workout, sets: [ExerciseSet]), index: Int) -> some View {
@@ -116,7 +162,8 @@ struct ExerciseHistoryQuickView: View {
         }
         .padding()
         .background(Color(.systemGray6))
-        .cornerRadius(12)
+        .cornerRadius(AppConstants.cornerRadius)
+        .shadow(color: Color.black.opacity(0.05), radius: 6, x: 0, y: 2)
     }
 
     private func loadRecentSessions() {

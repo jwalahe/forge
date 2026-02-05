@@ -15,12 +15,15 @@ struct CreateCustomExerciseView: View {
     @State private var name = ""
     @State private var selectedMuscleGroup: Exercise.MuscleGroup = .chest
     @State private var selectedEquipment: Exercise.Equipment = .barbell
+    @FocusState private var isNameFieldFocused: Bool
 
     var body: some View {
         NavigationStack {
             Form {
                 Section("Exercise Details") {
                     TextField("Exercise Name", text: $name)
+                        .focused($isNameFieldFocused)
+                        .autocorrectionDisabled()
 
                     Picker("Muscle Group", selection: $selectedMuscleGroup) {
                         ForEach(Exercise.MuscleGroup.allCases, id: \.self) { group in
@@ -48,15 +51,28 @@ struct CreateCustomExerciseView: View {
                     Button("Save") {
                         saveExercise()
                     }
-                    .disabled(name.isEmpty)
+                    .fontWeight(.semibold)
+                    .disabled(name.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty)
                 }
+            }
+            .onAppear {
+                isNameFieldFocused = true
+            }
+            .onChange(of: selectedMuscleGroup) { _, _ in
+                UIImpactFeedbackGenerator(style: .light).impactOccurred()
+            }
+            .onChange(of: selectedEquipment) { _, _ in
+                UIImpactFeedbackGenerator(style: .light).impactOccurred()
             }
         }
     }
 
     private func saveExercise() {
+        let trimmedName = name.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !trimmedName.isEmpty else { return }
+
         let exercise = Exercise(
-            name: name,
+            name: trimmedName,
             muscleGroup: selectedMuscleGroup,
             equipment: selectedEquipment,
             isCustom: true
@@ -65,10 +81,10 @@ struct CreateCustomExerciseView: View {
         modelContext.insert(exercise)
         try? modelContext.save()
 
-        dismiss()
-
-        // Haptic feedback
+        // Success haptic feedback
         UINotificationFeedbackGenerator().notificationOccurred(.success)
+
+        dismiss()
     }
 }
 

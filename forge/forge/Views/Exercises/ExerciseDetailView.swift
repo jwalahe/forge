@@ -15,35 +15,59 @@ struct ExerciseDetailView: View {
 
     var body: some View {
         NavigationStack {
-            ScrollView {
-                VStack(spacing: 24) {
-                    // Exercise info header
-                    exerciseInfo
+            ZStack {
+                // Background gradient
+                LinearGradient(
+                    colors: [Color(.systemBackground), Color(.systemGray6).opacity(0.3)],
+                    startPoint: .top,
+                    endPoint: .bottom
+                )
+                .ignoresSafeArea()
 
-                    // History placeholder
-                    VStack(alignment: .leading, spacing: 16) {
-                        Text("History")
-                            .font(.title3)
-                            .fontWeight(.semibold)
-                            .padding(.horizontal)
+                ScrollView {
+                    VStack(spacing: 24) {
+                        // Exercise info header
+                        exerciseInfo
 
-                        Text("Exercise history and progress graphs will appear here")
-                            .foregroundColor(.secondary)
-                            .multilineTextAlignment(.center)
-                            .padding()
+                        // History placeholder
+                        VStack(alignment: .leading, spacing: 16) {
+                            Text("History")
+                                .font(.title3)
+                                .fontWeight(.semibold)
+                                .padding(.horizontal)
+
+                            VStack(spacing: 16) {
+                                Image(systemName: "chart.line.uptrend.xyaxis")
+                                    .font(.system(size: 40))
+                                    .foregroundStyle(
+                                        LinearGradient(
+                                            colors: [Color.forgeAccent, Color.forgeAccent.opacity(0.6)],
+                                            startPoint: .topLeading,
+                                            endPoint: .bottomTrailing
+                                        )
+                                    )
+
+                                Text("Progress tracking coming soon")
+                                    .font(.subheadline)
+                                    .foregroundColor(.secondary)
+                            }
+                            .padding(.vertical, 24)
                             .frame(maxWidth: .infinity)
                             .background(Color(.systemGray6))
-                            .cornerRadius(12)
+                            .cornerRadius(AppConstants.cornerRadius)
+                            .shadow(color: Color.black.opacity(0.05), radius: 6, x: 0, y: 2)
                             .padding(.horizontal)
+                        }
                     }
+                    .padding(.vertical)
                 }
-                .padding(.vertical)
             }
             .navigationTitle(exercise.name)
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
                 ToolbarItem(placement: .cancellationAction) {
                     Button("Done") {
+                        UIImpactFeedbackGenerator(style: .light).impactOccurred()
                         dismiss()
                     }
                 }
@@ -57,28 +81,32 @@ struct ExerciseDetailView: View {
             HStack(spacing: 12) {
                 Label(exercise.muscleGroup.displayName, systemImage: "figure.strengthtraining.traditional")
                     .font(.subheadline)
+                    .fontWeight(.medium)
                     .padding(.horizontal, 12)
-                    .padding(.vertical, 6)
+                    .padding(.vertical, 8)
                     .background(Color.blue.opacity(0.1))
                     .foregroundColor(.blue)
-                    .cornerRadius(8)
+                    .cornerRadius(AppConstants.cornerRadius)
 
                 Label(exercise.equipment.displayName, systemImage: "gearshape")
                     .font(.subheadline)
+                    .fontWeight(.medium)
                     .padding(.horizontal, 12)
-                    .padding(.vertical, 6)
+                    .padding(.vertical, 8)
                     .background(Color.orange.opacity(0.1))
                     .foregroundColor(.orange)
-                    .cornerRadius(8)
+                    .cornerRadius(AppConstants.cornerRadius)
 
                 if exercise.isCustom {
                     Label("Custom", systemImage: "person.fill")
                         .font(.subheadline)
+                        .fontWeight(.medium)
                         .padding(.horizontal, 12)
-                        .padding(.vertical, 6)
+                        .padding(.vertical, 8)
                         .background(Color.forgeAccent.opacity(0.1))
                         .foregroundColor(.forgeAccent)
-                        .cornerRadius(8)
+                        .cornerRadius(AppConstants.cornerRadius)
+                        .transition(.scale.combined(with: .opacity))
                 }
             }
         }

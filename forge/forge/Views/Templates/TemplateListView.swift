@@ -19,19 +19,26 @@ struct TemplateListView: View {
         List {
             if templates.isEmpty {
                 emptyState
+                    .transition(.scale.combined(with: .opacity))
             } else {
                 ForEach(templates) { template in
                     templateRow(template)
+                        .transition(.asymmetric(
+                            insertion: .move(edge: .bottom).combined(with: .opacity),
+                            removal: .move(edge: .trailing).combined(with: .opacity)
+                        ))
                 }
                 .onDelete(perform: deleteTemplates)
             }
         }
+        .listStyle(.insetGrouped)
         .navigationTitle("Templates")
         .navigationBarTitleDisplayMode(.inline)
         .toolbar {
             ToolbarItem(placement: .primaryAction) {
                 Button {
                     showingCreateTemplate = true
+                    UIImpactFeedbackGenerator(style: .light).impactOccurred()
                 } label: {
                     Label("Create", systemImage: "plus")
                 }
@@ -43,22 +50,33 @@ struct TemplateListView: View {
     }
 
     private var emptyState: some View {
-        VStack(spacing: 16) {
+        VStack(spacing: 20) {
             Image(systemName: "doc.text.fill")
-                .font(.system(size: 50))
-                .foregroundColor(.secondary.opacity(0.3))
+                .font(.system(size: 60))
+                .foregroundStyle(
+                    LinearGradient(
+                        colors: [Color.forgeAccent, Color.forgeAccent.opacity(0.6)],
+                        startPoint: .topLeading,
+                        endPoint: .bottomTrailing
+                    )
+                )
                 .padding(.top, 60)
 
-            Text("No Templates Yet")
-                .font(.title2)
-                .fontWeight(.bold)
+            VStack(spacing: 8) {
+                Text("No Templates Yet")
+                    .font(.title2)
+                    .fontWeight(.bold)
 
-            Text("Save workouts as templates for quick start next time")
-                .font(.subheadline)
-                .foregroundColor(.secondary)
-                .multilineTextAlignment(.center)
-                .padding(.horizontal, 40)
+                Text("Save workouts as templates for quick start next time")
+                    .font(.subheadline)
+                    .foregroundColor(.secondary)
+                    .multilineTextAlignment(.center)
+                    .padding(.horizontal, 40)
+            }
         }
+        .frame(maxWidth: .infinity)
+        .listRowBackground(Color.clear)
+        .listRowSeparator(.hidden)
     }
 
     private func templateRow(_ template: Template) -> some View {
@@ -104,10 +122,13 @@ struct TemplateListView: View {
     }
 
     private func deleteTemplates(at offsets: IndexSet) {
-        let templateRepo = TemplateRepository(modelContext: modelContext)
-        for index in offsets {
-            templateRepo.deleteTemplate(templates[index])
+        withAnimation(.spring(response: 0.3, dampingFraction: 0.7)) {
+            let templateRepo = TemplateRepository(modelContext: modelContext)
+            for index in offsets {
+                templateRepo.deleteTemplate(templates[index])
+            }
         }
+        UINotificationFeedbackGenerator().notificationOccurred(.success)
     }
 }
 

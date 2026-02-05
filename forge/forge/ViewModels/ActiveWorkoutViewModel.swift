@@ -23,6 +23,9 @@ class ActiveWorkoutViewModel {
     var isTimerRunning = false
     nonisolated(unsafe) private var timer: Timer?
 
+    // Recent exercises for home view
+    var recentExercises: [Exercise] = []
+
     // Rest timer
     var restTimeRemaining: Int = 0
     var isRestTimerActive = false
@@ -33,6 +36,12 @@ class ActiveWorkoutViewModel {
         self.modelContext = modelContext
         self.workoutRepository = WorkoutRepository(modelContext: modelContext)
         self.exerciseRepository = ExerciseRepository(modelContext: modelContext)
+    }
+
+    // MARK: - Recent Exercises
+
+    func loadRecentExercises() {
+        recentExercises = workoutRepository.fetchRecentExercises()
     }
 
     // MARK: - Workout Management
@@ -80,6 +89,21 @@ class ActiveWorkoutViewModel {
         } else {
             // No previous data, add empty set
             addSet(to: workoutExercise, weight: nil, reps: nil)
+        }
+    }
+
+    func addExerciseFromPastWorkout(_ pastWorkoutExercise: WorkoutExercise) {
+        guard let workout = currentWorkout,
+              let exercise = pastWorkoutExercise.exercise else { return }
+        let workoutExercise = workoutRepository.addExerciseToWorkout(workout, exercise: exercise)
+
+        let pastSets = pastWorkoutExercise.completedSets.sorted { $0.setNumber < $1.setNumber }
+        if pastSets.isEmpty {
+            addSet(to: workoutExercise, weight: nil, reps: nil)
+        } else {
+            for pastSet in pastSets {
+                addSet(to: workoutExercise, weight: pastSet.weight, reps: pastSet.reps)
+            }
         }
     }
 
